@@ -13,17 +13,19 @@ if project_root not in sys.path:
 import PyQt5
 pyqt5_path = os.path.dirname(PyQt5.__file__)
 
-# Пути к плагинам
 plugin_paths = [
     os.path.join(pyqt5_path, 'Qt5', 'plugins'),
     os.path.join(pyqt5_path, 'Qt', 'plugins'),
     os.path.join(pyqt5_path, 'plugins'),
+    os.path.join(os.path.dirname(pyqt5_path), 'plugins'),
 ]
 
+qt_plugin_path = None
 for plugin_path in plugin_paths:
     if os.path.exists(plugin_path):
+        qt_plugin_path = plugin_path
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(plugin_path, 'platforms')
-        os.environ['QT_IMAGEFORMATS_PATH'] = plugin_path  # 🔧 ВАЖНО ДЛЯ ИЗОБРАЖЕНИЙ
+        os.environ['QT_IMAGEFORMATS_PATH'] = os.path.join(plugin_path, 'imageformats')
         print(f"✅ Qt plugins path: {plugin_path}")
         break
 # ==========================
@@ -31,10 +33,11 @@ for plugin_path in plugin_paths:
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QMessageBox,
-    QGroupBox, QTableWidget, QTableWidgetItem
+    QGroupBox, QTableWidget, QTableWidgetItem, QApplication,
+    QSlider, QScrollArea
 )
-from PyQt5.QtCore import QRect, Qt  # ← Qt добавлен
-from PyQt5.QtGui import QPixmap, QImageReader  # ← Добавь QImageReader
+from PyQt5.QtCore import QRect, Qt
+from PyQt5.QtGui import QPixmap, QImageReader, QImage
 
 
 from widgets.ocr_image_widget import OcrImageWidget
@@ -47,7 +50,7 @@ class TestOcrWindow(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("OCR — Разметка титульного листа (7 областей)")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1400, 900)
         
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -57,8 +60,57 @@ class TestOcrWindow(QMainWindow):
         # ===== ЛЕВАЯ ЧАСТЬ: Изображение =====
         left_layout = QVBoxLayout()
         
+        # 🔧 Скролл-область для изображения
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("background-color: #1a1a1a;")
+        scroll_area.setMinimumSize(800, 600)
+        
         self.image_widget = OcrImageWidget()
-        left_layout.addWidget(self.image_widget, stretch=1)
+        scroll_area.setWidget(self.image_widget)
+        
+        left_layout.addWidget(scroll_area, stretch=1)
+        
+        # 🔧 Панель настроек изображения
+        settings_group = QGroupBox("🎨 Настройки изображения")
+        settings_layout = QVBoxLayout(settings_group)
+        
+        # Яркость
+        brightness_layout = QHBoxLayout()
+        brightness_label = QLabel("☀️ Яркость:")
+        brightness_label.setFixedWidth(80)
+        self.slider_brightness = QSlider(Qt.Horizontal)
+        self.slider_brightness.setRange(-100, 100)
+        self.slider_brightness.setValue(0)
+        self.slider_brightness.valueChanged.connect(self._on_brightness_changed)
+        self.label_brightness_value = QLabel("0")
+        self.label_brightness_value.setFixedWidth(30)
+        brightness_layout.addWidget(brightness_label)
+        brightness_layout.addWidget(self.slider_brightness)
+        brightness_layout.addWidget(self.label_brightness_value)
+        settings_layout.addLayout(brightness_layout)
+        
+        # Контраст
+        contrast_layout = QHBoxLayout()
+        contrast_label = QLabel("🔲 Контраст:")
+        contrast_label.setFixedWidth(80)
+        self.slider_contrast = QSlider(Qt.Horizontal)
+        self.slider_contrast.setRange(-100, 100)
+        self.slider_contrast.setValue(0)
+        self.slider_contrast.valueChanged.connect(self._on_contrast_changed)
+        self.label_contrast_value = QLabel("0")
+        self.label_contrast_value.setFixedWidth(30)
+        contrast_layout.addWidget(contrast_label)
+        contrast_layout.addWidget(self.slider_contrast)
+        contrast_layout.addWidget(self.label_contrast_value)
+        settings_layout.addLayout(contrast_layout)
+        
+        # Кнопка сброса настроек
+        btn_reset_settings = QPushButton("🔄 Сбросить настройки")
+        btn_reset_settings.clicked.connect(self._reset_image_settings)
+        settings_layout.addWidget(btn_reset_settings)
+        
+        left_layout.addWidget(settings_group)
         
         # Кнопки управления
         btn_layout = QHBoxLayout()
@@ -70,6 +122,11 @@ class TestOcrWindow(QMainWindow):
         self.btn_reset = QPushButton("🗑 Сбросить области")
         self.btn_reset.clicked.connect(self._reset_regions)
         btn_layout.addWidget(self.btn_reset)
+        
+        self.btn_ocr = QPushButton("🔍 Распознать текст (OCR)")
+        self.btn_ocr.clicked.connect(self._run_ocr)
+        self.btn_ocr.setStyleSheet("background-color: #4CAF50; color: white;")
+        btn_layout.addWidget(self.btn_ocr)
         
         self.btn_export = QPushButton("💾 Экспорт областей")
         self.btn_export.clicked.connect(self._export_regions)
@@ -83,7 +140,7 @@ class TestOcrWindow(QMainWindow):
         right_layout = QVBoxLayout()
         
         # Статус
-        status_group = QGroupBox("Статус")
+        status_group = QGroupBox("📊 Статус")
         status_layout = QVBoxLayout(status_group)
         
         self.label_status = QLabel("Изображение не загружено")
@@ -92,24 +149,31 @@ class TestOcrWindow(QMainWindow):
         self.label_progress = QLabel("Области: 0/7")
         status_layout.addWidget(self.label_progress)
         
+        self.label_image_size = QLabel("Размер: -")
+        status_layout.addWidget(self.label_image_size)
+        
         right_layout.addWidget(status_group)
         
         # Список областей
-        regions_group = QGroupBox("Выделенные области")
+        regions_group = QGroupBox("📋 Выделенные области")
         regions_layout = QVBoxLayout(regions_group)
         
         self.table_regions = QTableWidget()
-        self.table_regions.setColumnCount(4)
+        self.table_regions.setColumnCount(5)
         self.table_regions.setHorizontalHeaderLabels(
-            ["ID", "Область", "Размер", "Статус"]
+            ["ID", "Область", "Размер", "Текст", "Статус"]
         )
         self.table_regions.horizontalHeader().setStretchLastSection(True)
+        self.table_regions.setColumnWidth(0, 40)
+        self.table_regions.setColumnWidth(1, 100)
+        self.table_regions.setColumnWidth(2, 80)
+        self.table_regions.setColumnWidth(3, 200)
         regions_layout.addWidget(self.table_regions)
         
         right_layout.addWidget(regions_group)
         
         # Предпросмотр
-        preview_group = QGroupBox("Предпросмотр последней области")
+        preview_group = QGroupBox("👁 Предпросмотр последней области")
         preview_layout = QVBoxLayout(preview_group)
         
         self.label_preview = QLabel()
@@ -119,6 +183,18 @@ class TestOcrWindow(QMainWindow):
         preview_layout.addWidget(self.label_preview)
         
         right_layout.addWidget(preview_group)
+        
+        # Результат OCR
+        ocr_group = QGroupBox("📝 Результат OCR")
+        ocr_layout = QVBoxLayout(ocr_group)
+        
+        self.text_ocr_result = QLabel("Распознанный текст появится здесь...")
+        self.text_ocr_result.setWordWrap(True)
+        self.text_ocr_result.setStyleSheet("background-color: #2a2a2a; color: #0f0; padding: 10px;")
+        self.text_ocr_result.setMinimumHeight(150)
+        ocr_layout.addWidget(self.text_ocr_result)
+        
+        right_layout.addWidget(ocr_group)
         
         right_layout.addStretch()
         
@@ -136,20 +212,18 @@ class TestOcrWindow(QMainWindow):
     def _load_image(self):
         """Загрузить изображение."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Выберите изображение титульного листа", "",
-            "Images (*.png *.jpg *.jpeg *.bmp)"
+            self, 
+            "Выберите изображение титульного листа", 
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp);;All Files (*)"
         )
         
         if file_path:
             print(f"📁 Выбран файл: {file_path}")
             
-            # 🔧 ПРОВЕРКА: какие форматы поддерживает Qt
-            supported = QImageReader.supportedImageFormats()
-            print(f"📋 Поддерживаемые форматы: {[f.data().decode() for f in supported]}")
-            
-            # 🔧 ПРОВЕРКА: существует ли файл
             if not os.path.exists(file_path):
                 print(f"❌ Файл не существует: {file_path}")
+                QMessageBox.warning(self, "Ошибка", f"Файл не найден:\n{file_path}")
                 return
             
             self.image_widget.load_image(file_path)
@@ -158,15 +232,42 @@ class TestOcrWindow(QMainWindow):
         """Изображение загружено."""
         self.label_status.setText(f"Загружено: {os.path.basename(path)}")
         self.label_progress.setText("Области: 0/7")
+        
+        self.label_image_size.setText(f"Размер: {self.image_widget.source_pixmap.width()}x{self.image_widget.source_pixmap.height()}")
+        
+        self._reset_image_settings()
         self._update_table()
+    
+    def _on_brightness_changed(self, value):
+        """Изменение яркости."""
+        self.label_brightness_value.setText(str(value))
+        self._apply_image_settings(silent=True)
+    
+    def _on_contrast_changed(self, value):
+        """Изменение контраста."""
+        self.label_contrast_value.setText(str(value))
+        self._apply_image_settings(silent=True)
+    
+    def _reset_image_settings(self):
+        """Сбросить настройки изображения."""
+        self.slider_brightness.setValue(0)
+        self.slider_contrast.setValue(0)
+        self.image_widget.reset_image_settings()
+    
+    def _apply_image_settings(self, silent: bool = False):
+        """Применить настройки яркости и контраста."""
+        brightness = self.slider_brightness.value()
+        contrast = self.slider_contrast.value()
+        
+        self.image_widget.apply_image_adjustments(brightness, contrast)
     
     def _on_region_selected(self, region_id: int, rect: QRect):
         """Область выделена."""
         self.label_progress.setText(f"Области: {region_id + 1}/7")
         self._update_table()
-        
-        # Предпросмотр
-        cropped = self.image_widget.get_region_image(region_id)
+
+        # 🔧 Предпросмотр с применёнными настройками (яркость/контраст)
+        cropped = self.image_widget.get_region_image(region_id, use_adjusted=True)
         if not cropped.isNull():
             self.label_preview.setPixmap(
                 cropped.scaled(200, 100, Qt.KeepAspectRatio)
@@ -180,7 +281,7 @@ class TestOcrWindow(QMainWindow):
         QMessageBox.information(
             self, "Завершено",
             "Все 7 областей выделены!\n\n"
-            "Теперь можно экспортировать их для OCR распознавания."
+            "Нажмите '🔍 Распознать текст (OCR)' для распознавания."
         )
     
     def _update_table(self):
@@ -193,7 +294,65 @@ class TestOcrWindow(QMainWindow):
             self.table_regions.setItem(i, 1, QTableWidgetItem(region.name))
             self.table_regions.setItem(i, 2, 
                 QTableWidgetItem(f"{region.rect.width()}x{region.rect.height()}"))
-            self.table_regions.setItem(i, 3, QTableWidgetItem("✅"))
+            
+            ocr_text = region.ocr_text if hasattr(region, 'ocr_text') else "-"
+            self.table_regions.setItem(i, 3, QTableWidgetItem(ocr_text[:30] + "..." if len(ocr_text) > 30 else ocr_text))
+            
+            self.table_regions.setItem(i, 4, QTableWidgetItem("✅"))
+    
+    def _run_ocr(self):
+        """Запустить распознавание текста."""
+        if not self.image_widget.regions:
+            QMessageBox.warning(self, "Ошибка", "Сначала выделите области!")
+            return
+        
+        print("\n" + "="*60)
+        print("🔍 НАЧАЛО РАСПОЗНАВАНИЯ ТЕКСТА (OCR)")
+        print("="*60)
+        
+        # 🔧 Проверяем, есть ли отличия от оригинала
+        has_adjustments = (
+            self.image_widget.brightness_value != 0 or 
+            self.image_widget.contrast_value != 0
+        )
+        
+        # if has_adjustments:
+        #     print(f"🎨 Используются настройки: яркость={self.image_widget.brightness_value}, контраст={self.image_widget.contrast_value}")
+        
+        ocr_results = []
+        
+        for region in self.image_widget.regions:
+            # 🔧 Получаем область с применёнными настройками яркости/контраста
+            cropped = self.image_widget.get_region_image(region.id, use_adjusted=True)
+            if not cropped.isNull():
+                text = self.image_widget.recognize_text(cropped)
+                region.ocr_text = text
+                
+                ocr_results.append({
+                    'id': region.id,
+                    'name': region.name,
+                    'text': text
+                })
+                
+                print(f"\n📋 Область #{region.id} — {region.name}:")
+                print(f"   Размер: {region.rect.width()}x{region.rect.height()}")
+                print(f"   Текст: {text if text else '(не распознано)'}")
+                print("-"*60)
+        
+        self._update_table()
+        
+        full_text = "\n".join([f"{r['name']}: {r['text']}" for r in ocr_results])
+        self.text_ocr_result.setText(full_text if full_text else "Текст не распознан")
+        
+        print("\n" + "="*60)
+        print("✅ РАСПОЗНАВАНИЕ ЗАВЕРШЕНО")
+        print("="*60 + "\n")
+        
+        QMessageBox.information(
+            self, "OCR завершён",
+            f"Распознано {len(ocr_results)} областей!\n"
+            "Результат выведен в консоль и в окно."
+        )
     
     def _reset_regions(self):
         """Сбросить все области."""
@@ -202,6 +361,7 @@ class TestOcrWindow(QMainWindow):
         self.label_progress.setText("Области: 0/7")
         self.table_regions.setRowCount(0)
         self.label_preview.clear()
+        self.text_ocr_result.setText("Распознанный текст появится здесь...")
     
     def _export_regions(self):
         """Экспортировать области."""
@@ -226,8 +386,6 @@ class TestOcrWindow(QMainWindow):
 
 def run_test():
     """Запустить тестовое окно."""
-    from PyQt5.QtWidgets import QApplication
-    
     app = QApplication(sys.argv)
     window = TestOcrWindow()
     window.show()
