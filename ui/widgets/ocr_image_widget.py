@@ -438,8 +438,19 @@ class OcrImageWidget(QWidget):
         
         return QPixmap()
     
-    def recognize_text(self, pixmap: QPixmap) -> str:
-        """Распознать текст на изображении через Tesseract."""
+    def recognize_text(self, pixmap: QPixmap, lang: str = 'auto') -> str:
+        """
+        Распознать текст на изображении через Tesseract.
+        
+        Args:
+            pixmap: Изображение для распознавания
+            lang: Язык распознавания:
+                  - 'rus' — только русский
+                  - 'eng' — только английский
+                  - 'rus+eng' — русский + английский (смешанный)
+                  - 'eng+rus' — английский + русский (приоритет английский)
+                  - 'digits' — только цифры и базовые символы
+        """
         try:
             import pytesseract
             from PIL import Image
@@ -456,8 +467,18 @@ class OcrImageWidget(QWidget):
 
             img = Image.open(io.BytesIO(byte_array.data()))
 
-            config = r'--oem 3 --psm 6 -l rus+eng'
-            text = pytesseract.image_to_string(img, config=config)
+            # 🔧 Определяем язык и конфиг в зависимости от режима
+            lang_map = {
+                'rus': ('rus', r'--oem 3 --psm 6'),
+                'eng': ('eng', r'--oem 3 --psm 6'),
+                'rus+eng': ('rus+eng', r'--oem 3 --psm 6'),
+                'eng+rus': ('eng+rus', r'--oem 3 --psm 6'),
+                'digits': ('eng', r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789.,-:;()/'),
+                'auto': ('rus+eng', r'--oem 3 --psm 6'),  # по умолчанию
+            }
+            
+            ocr_lang, config = lang_map.get(lang, ('rus+eng', r'--oem 3 --psm 6'))
+            text = pytesseract.image_to_string(img, lang=ocr_lang, config=config)
 
             return text.strip()
 

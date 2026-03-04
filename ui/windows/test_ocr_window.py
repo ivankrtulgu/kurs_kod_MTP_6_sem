@@ -34,7 +34,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QMessageBox,
     QGroupBox, QTableWidget, QTableWidgetItem, QApplication,
-    QSlider, QScrollArea
+    QSlider, QScrollArea, QComboBox
 )
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtGui import QPixmap, QImageReader, QImage
@@ -104,54 +104,94 @@ class TestOcrWindow(QMainWindow):
         contrast_layout.addWidget(self.slider_contrast)
         contrast_layout.addWidget(self.label_contrast_value)
         settings_layout.addLayout(contrast_layout)
-        
+
         # Кнопка сброса настроек
         btn_reset_settings = QPushButton("🔄 Сбросить настройки")
         btn_reset_settings.clicked.connect(self._reset_image_settings)
         settings_layout.addWidget(btn_reset_settings)
-        
+
         left_layout.addWidget(settings_group)
         
+        # 🔧 Настройки языка распознавания
+        lang_group = QGroupBox("🌐 Язык распознавания")
+        lang_layout = QVBoxLayout(lang_group)
+        
+        lang_info_label = QLabel("Выберите приоритетный язык:")
+        lang_info_label.setStyleSheet("color: #aaa;")
+        lang_layout.addWidget(lang_info_label)
+        
+        # 🔧 Выпадающий список языков
+        self.combo_lang = QComboBox()
+        self.combo_lang.addItem("🇷🇺 Русский", "rus")
+        self.combo_lang.addItem("🇬🇧 English", "eng")
+        self.combo_lang.addItem("🇷🇺🇬🇧 Русский + English (смешанный)", "rus+eng")
+        self.combo_lang.addItem("🇬🇧🇷🇺 English + Русский (приоритет EN)", "eng+rus")
+        self.combo_lang.addItem("🔢 Цифры и символы", "digits")
+        self.combo_lang.setCurrentIndex(2)  # По умолчанию rus+eng
+        self.combo_lang.setStyleSheet("""
+            QComboBox {
+                padding: 5px;
+                background-color: #2a2a2a;
+                color: #fff;
+                border: 1px solid #444;
+                border-radius: 3px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 8px solid #aaa;
+                margin-right: 5px;
+            }
+        """)
+        lang_layout.addWidget(self.combo_lang)
+        
+        left_layout.addWidget(lang_group)
+
         # Кнопки управления
         btn_layout = QHBoxLayout()
-        
+
         self.btn_load = QPushButton("📁 Загрузить изображение")
         self.btn_load.clicked.connect(self._load_image)
         btn_layout.addWidget(self.btn_load)
-        
+
         self.btn_reset = QPushButton("🗑 Сбросить области")
         self.btn_reset.clicked.connect(self._reset_regions)
         btn_layout.addWidget(self.btn_reset)
-        
+
         self.btn_ocr = QPushButton("🔍 Распознать текст (OCR)")
         self.btn_ocr.clicked.connect(self._run_ocr)
         self.btn_ocr.setStyleSheet("background-color: #4CAF50; color: white;")
         btn_layout.addWidget(self.btn_ocr)
-        
+
         self.btn_export = QPushButton("💾 Экспорт областей")
         self.btn_export.clicked.connect(self._export_regions)
         btn_layout.addWidget(self.btn_export)
-        
+
         left_layout.addLayout(btn_layout)
-        
+
         main_layout.addLayout(left_layout, stretch=2)
-        
+
         # ===== ПРАВАЯ ЧАСТЬ: Информация =====
         right_layout = QVBoxLayout()
-        
+
         # Статус
         status_group = QGroupBox("📊 Статус")
         status_layout = QVBoxLayout(status_group)
-        
+
         self.label_status = QLabel("Изображение не загружено")
         status_layout.addWidget(self.label_status)
-        
+
         self.label_progress = QLabel("Области: 0/7")
         status_layout.addWidget(self.label_progress)
-        
+
         self.label_image_size = QLabel("Размер: -")
         status_layout.addWidget(self.label_image_size)
-        
+
         right_layout.addWidget(status_group)
         
         # Список областей
@@ -305,35 +345,40 @@ class TestOcrWindow(QMainWindow):
         if not self.image_widget.regions:
             QMessageBox.warning(self, "Ошибка", "Сначала выделите области!")
             return
-        
+
+        # 🔧 Получаем выбранный язык
+        lang = self.combo_lang.currentData()
+        lang_name = self.combo_lang.currentText()
+
         print("\n" + "="*60)
         print("🔍 НАЧАЛО РАСПОЗНАВАНИЯ ТЕКСТА (OCR)")
         print("="*60)
-        
+        print(f"🌐 Язык: {lang_name} ({lang})")
+
         # 🔧 Проверяем, есть ли отличия от оригинала
         has_adjustments = (
-            self.image_widget.brightness_value != 0 or 
+            self.image_widget.brightness_value != 0 or
             self.image_widget.contrast_value != 0
         )
-        
+
         # if has_adjustments:
         #     print(f"🎨 Используются настройки: яркость={self.image_widget.brightness_value}, контраст={self.image_widget.contrast_value}")
-        
+
         ocr_results = []
-        
+
         for region in self.image_widget.regions:
             # 🔧 Получаем область с применёнными настройками яркости/контраста
             cropped = self.image_widget.get_region_image(region.id, use_adjusted=True)
             if not cropped.isNull():
-                text = self.image_widget.recognize_text(cropped)
+                text = self.image_widget.recognize_text(cropped, lang=lang)
                 region.ocr_text = text
-                
+
                 ocr_results.append({
                     'id': region.id,
                     'name': region.name,
                     'text': text
                 })
-                
+
                 print(f"\n📋 Область #{region.id} — {region.name}:")
                 print(f"   Размер: {region.rect.width()}x{region.rect.height()}")
                 print(f"   Текст: {text if text else '(не распознано)'}")
