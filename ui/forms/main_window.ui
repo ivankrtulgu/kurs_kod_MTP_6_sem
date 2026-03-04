@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Библиотека OCR — Каталог книг</string>
+  </property>
+  <property name="objectName">
+   <string>MainWindow</string>
+  </property>
+  
+  <!-- Menu Bar -->
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1200</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="objectName">
+    <string>menubar</string>
+   </property>
+   
+   <!-- Menu: Файл -->
+   <widget class="QMenu" name="menu_file">
+    <property name="title">
+     <string>Файл</string>
+    </property>
+    <property name="objectName">
+     <string>menu_file</string>
+    </property>
+    <addaction name="action_exit"/>
+   </widget>
+   
+   <!-- Menu: Каталог -->
+   <widget class="QMenu" name="menu_catalog">
+    <property name="title">
+     <string>Каталог</string>
+    </property>
+    <property name="objectName">
+     <string>menu_catalog</string>
+    </property>
+    <addaction name="action_add_book"/>
+    <addaction name="action_refresh"/>
+    <addaction name="action_search"/>
+    <addaction name="separator_catalog"/>
+    <addaction name="action_export"/>
+   </widget>
+   
+   <!-- Menu: Сервис -->
+   <widget class="QMenu" name="menu_service">
+    <property name="title">
+     <string>Сервис</string>
+    </property>
+    <property name="objectName">
+     <string>menu_service</string>
+    </property>
+    <addaction name="action_ocr"/>
+    <addaction name="action_generate_qr"/>
+   </widget>
+   
+   <!-- Menu: Справка -->
+   <widget class="QMenu" name="menu_help">
+    <property name="title">
+     <string>Справка</string>
+    </property>
+    <property name="objectName">
+     <string>menu_help</string>
+    </property>
+    <addaction name="action_about"/>
+   </widget>
+   
+   <addaction name="menu_file"/>
+   <addaction name="menu_catalog"/>
+   <addaction name="menu_service"/>
+   <addaction name="menu_help"/>
+  </widget>
+  
+  <!-- Toolbar -->
+  <widget class="QToolBar" name="toolbar_main">
+   <property name="windowTitle">
+    <string>Панель инструментов</string>
+   </property>
+   <property name="objectName">
+    <string>toolbar_main</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <addaction name="action_add_book"/>
+   <addaction name="action_refresh"/>
+   <addaction name="action_search"/>
+   <addaction name="separator_toolbar"/>
+   <addaction name="action_ocr"/>
+   <addaction name="action_generate_qr"/>
+   <addaction name="action_export"/>
+  </widget>
+  
+  <!-- Central Widget with MDI Area -->
+  <widget class="QWidget" name="centralwidget">
+   <property name="objectName">
+    <string>centralwidget</string>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QMdiArea" name="mdi_area">
+      <property name="objectName">
+       <string>mdi_area</string>
+      </property>
+      <property name="viewMode">
+       <enum>QMdiArea::TabbedView</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  
+  <!-- Status Bar -->
+  <widget class="QStatusBar" name="statusbar">
+   <property name="objectName">
+    <string>statusbar</string>
+   </property>
+  </widget>
+  
+  <!-- Actions -->
+  <action name="action_add_book">
+   <property name="text">
+    <string>Добавить книгу</string>
+   </property>
+   <property name="toolTip">
+    <string>Добавить новую книгу в каталог</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+   <property name="objectName">
+    <string>action_add_book</string>
+   </property>
+  </action>
+  
+  <action name="action_refresh">
+   <property name="text">
+    <string>Обновить</string>
+   </property>
+   <property name="toolTip">
+    <string>Обновить список книг</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+   <property name="objectName">
+    <string>action_refresh</string>
+   </property>
+  </action>
+  
+  <action name="action_search">
+   <property name="text">
+    <string>Поиск</string>
+   </property>
+   <property name="toolTip">
+    <string>Поиск по каталогу</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+   <property name="objectName">
+    <string>action_search</string>
+   </property>
+  </action>
+  
+  <action name="action_exit">
+   <property name="text">
+    <string>Выход</string>
+   </property>
+   <property name="toolTip">
+    <string>Выйти из приложения</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+   <property name="objectName">
+    <string>action_exit</string>
+   </property>
+  </action>
+  
+  <action name="action_export">
+   <property name="text">
+    <string>Экспорт</string>
+   </property>
+   <property name="toolTip">
+    <string>Экспортировать каталог</string>
+   </property>
+   <property name="objectName">
+    <string>action_export</string>
+   </property>
+  </action>
+  
+  <action name="action_ocr">
+   <property name="text">
+    <string>OCR</string>
+   </property>
+   <property name="toolTip">
+    <string>Распознать текст с изображения</string>
+   </property>
+   <property name="objectName">
+    <string>action_ocr</string>
+   </property>
+  </action>
+  
+  <action name="action_generate_qr">
+   <property name="text">
+    <string>QR-коды</string>
+   </property>
+   <property name="toolTip">
+    <string>Сгенерировать QR-коды для книг</string>
+   </property>
+   <property name="objectName">
+    <string>action_generate_qr</string>
+   </property>
+  </action>
+  
+  <action name="action_about">
+   <property name="text">
+    <string>О программе</string>
+   </property>
+   <property name="toolTip">
+    <string>Информация о приложении</string>
+   </property>
+   <property name="objectName">
+    <string>action_about</string>
+   </property>
+  </action>
+  
+  <action name="separator_catalog">
+   <property name="separator">
+    <bool>true</bool>
+   </property>
+   <property name="objectName">
+    <string>separator_catalog</string>
+   </property>
+  </action>
+  
+  <action name="separator_toolbar">
+   <property name="separator">
+    <bool>true</bool>
+   </property>
+   <property name="objectName">
+    <string>separator_toolbar</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

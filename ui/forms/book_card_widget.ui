@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BookCardWidget</class>
+ <widget class="QWidget" name="BookCardWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>700</width>
+    <height>650</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Карточка книги</string>
+  </property>
+  <property name="objectName">
+   <string>BookCardWidget</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_header">
+     <item>
+      <widget class="QLabel" name="label_cover">
+       <property name="objectName">
+        <string>label_cover</string>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>150</width>
+         <height>200</height>
+        </size>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Box</enum>
+       </property>
+       <property name="text">
+        <string>Обложка / QR</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QFormLayout" name="formLayout_info">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_author_title">
+         <property name="text">
+          <string>Автор:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_author_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_title_title">
+         <property name="text">
+          <string>Название:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="label_title_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_year_title">
+         <property name="text">
+          <string>Год:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="label_year_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_isbn_title">
+         <property name="text">
+          <string>ISBN:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLabel" name="label_isbn_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   
+   <item>
+    <widget class="QGroupBox" name="groupBox_biblio">
+     <property name="title">
+      <string>Библиографическая запись</string>
+     </property>
+     <property name="objectName">
+      <string>groupBox_biblio</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_biblio">
+      <item>
+       <widget class="QTextEdit" name="text_biblio_record">
+        <property name="objectName">
+         <string>text_biblio_record</string>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QGroupBox" name="groupBox_additional">
+     <property name="title">
+      <string>Дополнительная информация</string>
+     </property>
+     <property name="objectName">
+      <string>groupBox_additional</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_additional">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_udc_title">
+        <property name="text">
+         <string>УДК:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_udc_value">
+        <property name="text">
+         <string>-</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_bbk_title">
+        <property name="text">
+         <string>ББК:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="label_bbk_value">
+        <property name="text">
+         <string>-</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_actions">
+     <item>
+      <widget class="QPushButton" name="btn_edit">
+       <property name="text">
+        <string>Редактировать</string>
+       </property>
+       <property name="objectName">
+        <string>btn_edit</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_delete">
+       <property name="text">
+        <string>Удалить</string>
+       </property>
+       <property name="objectName">
+        <string>btn_delete</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_actions">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_export">
+       <property name="text">
+        <string>Экспорт</string>
+       </property>
+       <property name="objectName">
+        <string>btn_export</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_qr">
+       <property name="text">
+        <string>QR-код</string>
+       </property>
+       <property name="objectName">
+        <string>btn_qr</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

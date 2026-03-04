@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AddBookDialog</class>
+ <widget class="QDialog" name="AddBookDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>750</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Добавить книгу</string>
+  </property>
+  <property name="objectName">
+   <string>AddBookDialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   
+   <item>
+    <widget class="QTabWidget" name="tab_widget">
+     <property name="objectName">
+      <string>tab_widget</string>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     
+     <widget class="QWidget" name="tab_main">
+      <attribute name="title">
+       <string>Основные</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout_main">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_author">
+         <property name="text">
+          <string>Автор (*):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="input_author">
+         <property name="objectName">
+          <string>input_author</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_title">
+         <property name="text">
+          <string>Заглавие (*):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="input_title">
+         <property name="objectName">
+          <string>input_title</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_subtitle">
+         <property name="text">
+          <string>Сведения к заглавию:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="input_subtitle">
+         <property name="objectName">
+          <string>input_subtitle</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_responsibility">
+         <property name="text">
+          <string>Ответственность:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="input_responsibility">
+         <property name="objectName">
+          <string>input_responsibility</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_edition">
+         <property name="text">
+          <string>Издание:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="input_edition">
+         <property name="objectName">
+          <string>input_edition</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_place">
+         <property name="text">
+          <string>Место:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="input_place">
+         <property name="objectName">
+          <string>input_place</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_publisher">
+         <property name="text">
+          <string>Издательство:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="input_publisher">
+         <property name="objectName">
+          <string>input_publisher</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_year">
+         <property name="text">
+          <string>Год (*):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QSpinBox" name="input_year">
+         <property name="objectName">
+          <string>input_year</string>
+         </property>
+         <property name="minimum">
+          <number>1900</number>
+         </property>
+         <property name="maximum">
+          <number>2100</number>
+         </property>
+         <property name="value">
+          <number>2024</number>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="label_pages">
+         <property name="text">
+          <string>Страниц (*):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QSpinBox" name="input_pages">
+         <property name="objectName">
+          <string>input_pages</string>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>10000</number>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0">
+        <widget class="QLabel" name="label_isbn">
+         <property name="text">
+          <string>ISBN (*):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="QLineEdit" name="input_isbn">
+         <property name="objectName">
+          <string>input_isbn</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0">
+        <widget class="QLabel" name="label_copyright">
+         <property name="text">
+          <string>Знак охраны:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="1">
+        <widget class="QLineEdit" name="input_copyright">
+         <property name="objectName">
+          <string>input_copyright</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     
+     <widget class="QWidget" name="tab_classification">
+      <attribute name="title">
+       <string>Классификация</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout_classification">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_udc">
+         <property name="text">
+          <string>УДК:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="input_udc">
+         <property name="objectName">
+          <string>input_udc</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_bbk">
+         <property name="text">
+          <string>ББК:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="input_bbk">
+         <property name="objectName">
+          <string>input_bbk</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_author_mark">
+         <property name="text">
+          <string>Авторский знак:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="input_author_mark">
+         <property name="objectName">
+          <string>input_author_mark</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     
+     <widget class="QWidget" name="tab_additional">
+      <attribute name="title">
+       <string>Дополнительно</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_additional">
+       <item>
+        <widget class="QLabel" name="label_reviewers">
+         <property name="text">
+          <string>Рецензенты:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextEdit" name="text_reviewers">
+         <property name="objectName">
+          <string>text_reviewers</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_annotation">
+         <property name="text">
+          <string>Аннотация:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextEdit" name="text_annotation">
+         <property name="objectName">
+          <string>text_annotation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_doi">
+         <property name="text">
+          <string>DOI:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="input_doi">
+         <property name="objectName">
+          <string>input_doi</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_cover">
+         <item>
+          <widget class="QLabel" name="label_cover">
+           <property name="text">
+            <string>Обложка:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="input_cover_path">
+           <property name="objectName">
+            <string>input_cover_path</string>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_select_cover">
+           <property name="text">
+            <string>Выбрать...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QPushButton" name="btn_ocr">
+     <property name="text">
+      <string>Распознать с изображения (OCR)</string>
+     </property>
+     <property name="objectName">
+      <string>btn_ocr</string>
+     </property>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QDialogButtonBox" name="button_box">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Save|QDialogButtonBox::Cancel</set>
+     </property>
+     <property name="objectName">
+      <string>button_box</string>
+     </property>
+    </widget>
+   </item>
+   
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>button_box</sender>
+   <signal>accepted()</signal>
+   <receiver>AddBookDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+  <connection>
+   <sender>button_box</sender>
+   <signal>rejected()</signal>
+   <receiver>AddBookDialog</receiver>
+   <slot>reject()</slot>
+  </connection>
+ </connections>
+</ui>

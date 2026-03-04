@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AboutDialog</class>
+ <widget class="QDialog" name="AboutDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>500</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>О программе</string>
+  </property>
+  <property name="objectName">
+   <string>AboutDialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   
+   <item>
+    <widget class="QLabel" name="label_icon">
+     <property name="text">
+      <string>📚</string>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>48</pointsize>
+      </font>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QLabel" name="label_app_name">
+     <property name="text">
+      <string>Библиотека OCR</string>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>16</pointsize>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QLabel" name="label_version">
+     <property name="text">
+      <string>Версия 1.0.0</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QTextEdit" name="text_description">
+     <property name="objectName">
+      <string>text_description</string>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="plainText">
+      <string>Приложение для каталогизации книг с функцией OCR.
+
+Предметная область: Библиотечное дело
+Вариант: 45
+
+Технологии:
+- Python 3.10+
+- PyQt5
+- Tesseract OCR
+- SQLite
+
+Функционал:
+- Каталогизация по ГОСТ Р 7.0.4-2020
+- OCR-распознавание
+- Генерация QR-кодов
+- Поиск по каталогу
+
+(c) 2024</string>
+     </property>
+    </widget>
+   </item>
+   
+   <item>
+    <widget class="QPushButton" name="btn_ok">
+     <property name="text">
+      <string>OK</string>
+     </property>
+     <property name="objectName">
+      <string>btn_ok</string>
+     </property>
+    </widget>
+   </item>
+   
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btn_ok</sender>
+   <signal>clicked()</signal>
+   <receiver>AboutDialog</receiver>
+   <slot>accept()</slot>
+  </connection>
+ </connections>
+</ui>
