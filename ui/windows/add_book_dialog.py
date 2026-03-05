@@ -6,7 +6,7 @@ from ui.generated.ui_add_book_dialog import Ui_AddBookDialog
 
 from core.models.book import Book
 from core.services.book_service import BookService, ValidationError
-from ui.windows.ocr_dialog import OcrDialog
+from ui.windows.ocr_window import OcrWindow
 
 
 class AddBookDialog(QDialog, Ui_AddBookDialog):
@@ -113,19 +113,52 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         return True, ""
 
     def _on_ocr(self):
-        """Open OCR dialog and populate fields with recognized text."""
+        """Open OCR window and populate fields with recognized text."""
         try:
-            dialog = OcrDialog(parent=self)
-            if dialog.exec_() == OcrDialog.Accepted:
-                ocr_data = dialog.get_recognized_data()
-                if ocr_data:
-                    self._fill_from_ocr()
-                    QMessageBox.information(
-                        self, "OCR",
-                        "Данные успешно распознаны и заполнены в форму"
-                    )
+            # Find parent main window and open OCR as MDI child
+            parent_window = self.window()
+            if hasattr(parent_window, 'mdi_area'):
+                # Open OCR in the main MDI area
+                ocr_window = OcrWindow()
+                
+                from PyQt5.QtWidgets import QMdiSubWindow
+                from PyQt5.QtCore import Qt
+                
+                sub_window = QMdiSubWindow()
+                sub_window.setWidget(ocr_window)
+                sub_window.setWindowTitle("OCR для добавления книги")
+                sub_window.setAttribute(Qt.WA_DeleteOnClose)
+                sub_window.resize(1400, 900)
+                
+                parent_window.mdi_area.addSubWindow(sub_window)
+                sub_window.show()
+                
+                # Connect OCR data signal to fill form
+                ocr_window.ocr_data_ready.connect(self._fill_from_ocr_data)
+                
+            else:
+                QMessageBox.information(self, "OCR", "Откройте главное окно для полноценного OCR")
+                
         except Exception as e:
             QMessageBox.critical(self, "Ошибка OCR", f"Ошибка распознавания: {e}")
+
+    def _fill_from_ocr_data(self, ocr_data: dict):
+        """Fill form with OCR data and activate this window."""
+        self._ocr_data = ocr_data
+        self._fill_from_ocr()
+        
+        # Activate this window
+        parent = self.parent()
+        if parent:
+            from PyQt5.QtWidgets import QMdiSubWindow
+            if isinstance(parent, QMdiSubWindow):
+                parent.showNormal()
+                parent.activateWindow()
+        
+        QMessageBox.information(
+            self, "OCR",
+            "Данные успешно распознаны и заполнены в форму"
+        )
 
     def _on_select_cover(self):
         """Select cover image file."""

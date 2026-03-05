@@ -21,18 +21,18 @@ class OcrRegion:
     ]
 
     def __init__(self, rect: QRect, region_id: int):
-        self.rect = rect  # Координаты ОТНОСИТЕЛЬНО source_pixmap (оригинала)
+        self.rect = rect  # 🔧 Координаты ОТНОСИТЕЛЬНО source_pixmap (оригинала)
         self.id = region_id
         self.color, self.name = self.COLORS[region_id % len(self.COLORS)]
         self.enabled = True
         self.ocr_text = ""
 
     def draw(self, painter: QPainter, offset_x: int, offset_y: int, scale_x: float, scale_y: float):
-        """Отрисовка с масштабированием."""
+        """🔧 Отрисовка с масштабированием."""
         if not self.enabled:
             return
 
-        # Масштабируем координаты для отображения
+        # 🔧 Масштабируем координаты для отображения
         scaled_rect = QRect(
             int(self.rect.x() * scale_x) + offset_x,
             int(self.rect.y() * scale_y) + offset_y,
@@ -68,12 +68,12 @@ class OcrImageWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__()
 
-        # ТРИ УРОВНЯ PIXMAP
+        # 🔧 ТРИ УРОВНЯ PIXMAP
         self.source_pixmap = QPixmap()      # Оригинальное изображение
         self.adjusted_pixmap = QPixmap()    # С яркостью/контрастом
         self.display_pixmap = QPixmap()     # Масштабированное для отображения
 
-        # КЭШИРОВАНИЕ для оптимизации
+        # 🔧 КЭШИРОВАНИЕ для оптимизации
         self._source_image = None  # PIL Image оригинал
         self._last_brightness = 0
         self._last_contrast = 0
@@ -87,13 +87,13 @@ class OcrImageWidget(QWidget):
         self.end_point = QPoint()
         self.temp_rect = QRect()
 
-        # Коэффициенты масштабирования
+        # 🔧 Коэффициенты масштабирования
         self.scale_factor_x = 1.0
         self.scale_factor_y = 1.0
         self.image_offset_x = 0
         self.image_offset_y = 0
 
-        # Текущие настройки
+        # 🔧 Текущие настройки
         self.brightness_value = 0
         self.contrast_value = 0
 
@@ -120,20 +120,20 @@ class OcrImageWidget(QWidget):
             temp_path = os.path.join(temp_dir, temp_filename)
             
             img.save(temp_path, 'PNG')
-
-            print(f"Конвертировано: {file_path} -> {temp_path}")
-
+            
+            print(f"✅ Конвертировано: {file_path} → {temp_path}")
+            
             self.temp_png_path = temp_path
             return temp_path
-
+            
         except Exception as e:
-            print(f"Ошибка конвертации: {e}")
+            print(f"❌ Ошибка конвертации: {e}")
             return None
-
+    
     def load_image(self, file_path: str):
         """Загрузить изображение с авто-конвертацией в PNG."""
-
-        print(f"\nЗагрузка: {file_path}")
+        
+        print(f"\n📁 Загрузка: {file_path}")
         
         if self.temp_png_path and os.path.exists(self.temp_png_path):
             try:
@@ -144,50 +144,50 @@ class OcrImageWidget(QWidget):
         
         ext = os.path.splitext(file_path)[1].lower()
         needs_conversion = ext in ['.jpg', '.jpeg']
-
+        
         if needs_conversion:
-            print("JPG обнаружен, конвертируем в PNG...")
+            print("🔄 JPG обнаружен, конвертируем в PNG...")
             converted_path = self._convert_to_png(file_path)
             if converted_path:
                 file_path = converted_path
             else:
-                print("Конвертация не удалась!")
+                print("❌ Конвертация не удалась!")
                 return
-
-        # Загружаем в source_pixmap (оригинал)
+        
+        # 🔧 Загружаем в source_pixmap (оригинал)
         self.source_pixmap = QPixmap(file_path)
-
+        
         if self.source_pixmap.isNull():
-            print("QPixmap не загрузил, пробуем QImage...")
+            print("⚠️ QPixmap не загрузил, пробуем QImage...")
             image = QImage(file_path)
             if not image.isNull():
                 self.source_pixmap = QPixmap.fromImage(image)
-                print("Загружено через QImage")
+                print("✅ Загружено через QImage")
             else:
-                print("ОШИБКА: Не удалось загрузить изображение")
+                print("❌ ОШИБКА: Не удалось загрузить изображение")
                 return
-
-        print(f"Изображение загружено: {self.source_pixmap.width()}x{self.source_pixmap.height()}")
-
-        # Сбрасываем настройки
+        
+        print(f"✅ Изображение загружено: {self.source_pixmap.width()}x{self.source_pixmap.height()}")
+        
+        # 🔧 Сбрасываем настройки
         self.brightness_value = 0
         self.contrast_value = 0
-
-        # Применяем настройки (создаст adjusted_pixmap)
+        
+        # 🔧 Применяем настройки (создаст adjusted_pixmap)
         self._apply_adjustments_to_pixmap()
-
+        
         self.regions = []
         self.current_region_id = 0
-
-        # Обновляем отображение (создаст display_pixmap и коэффициенты)
+        
+        # 🔧 Обновляем отображение (создаст display_pixmap и коэффициенты)
         self._update_display_pixmap()
-
+        
         self.image_loaded.emit(file_path)
     
     def _apply_adjustments_to_pixmap(self, silent: bool = False):
         """
-        Применить яркость/контраст к source_pixmap -> adjusted_pixmap.
-
+        Применить яркость/контраст к source_pixmap → adjusted_pixmap.
+        
         Args:
             silent: Если True — не выводить сообщения в консоль
         """
@@ -198,7 +198,7 @@ class OcrImageWidget(QWidget):
             from PIL import Image, ImageEnhance
             import io
 
-            # Используем кэшированное PIL Image или создаём новое
+            # 🔧 Используем кэшированное PIL Image или создаём новое
             if self._source_image is None:
                 byte_array = QByteArray()
                 buffer = QBuffer(byte_array)
@@ -226,11 +226,11 @@ class OcrImageWidget(QWidget):
             self.adjusted_pixmap.loadFromData(buffer_out.read())
 
             # if not silent:
-                # print(f"Настройки применены: яркость={self.brightness_value}, контраст={self.contrast_value}")
+                # print(f"🎨 Настройки применены: яркость={self.brightness_value}, контраст={self.contrast_value}")
 
         except Exception as e:
             if not silent:
-                print(f"Ошибка применения настроек: {e}")
+                print(f"❌ Ошибка применения настроек: {e}")
                 import traceback
                 traceback.print_exc()
     
@@ -238,29 +238,29 @@ class OcrImageWidget(QWidget):
         """Обновить отображаемый pixmap с учётом размера виджета."""
         if self.adjusted_pixmap.isNull():
             return
-
-        # Масштабируем под размер виджета с сохранением пропорций
+        
+        # 🔧 Масштабируем под размер виджета с сохранением пропорций
         scaled_pixmap = self.adjusted_pixmap.scaled(
-            self.width(),
-            self.height(),
+            self.width(), 
+            self.height(), 
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         )
-
+        
         self.display_pixmap = scaled_pixmap
-
-        # Вычисляем коэффициенты масштабирования (ОТ source к display)
+        
+        # 🔧 Вычисляем коэффициенты масштабирования (ОТ source к display)
         if not self.source_pixmap.isNull() and self.source_pixmap.width() > 0:
             self.scale_factor_x = self.display_pixmap.width() / self.source_pixmap.width()
             self.scale_factor_y = self.display_pixmap.height() / self.source_pixmap.height()
         else:
             self.scale_factor_x = 1.0
             self.scale_factor_y = 1.0
-
-        # Вычисляем offset для центрирования
+        
+        # 🔧 Вычисляем offset для центрирования
         self.image_offset_x = (self.width() - self.display_pixmap.width()) // 2
         self.image_offset_y = (self.height() - self.display_pixmap.height()) // 2
-
+        
         self.update()
     
     def apply_image_adjustments(self, brightness: int, contrast: int):
@@ -289,73 +289,73 @@ class OcrImageWidget(QWidget):
             self.update()
     
     def _screen_to_source(self, pos: QPoint) -> QPoint:
-        """Конвертировать координаты экрана в координаты source_pixmap."""
+        """🔧 Конвертировать координаты экрана в координаты source_pixmap."""
         # Вычитаем offset изображения
         x = pos.x() - self.image_offset_x
         y = pos.y() - self.image_offset_y
-
+        
         # Делим на коэффициент масштабирования
         src_x = int(x / self.scale_factor_x) if self.scale_factor_x > 0 else x
         src_y = int(y / self.scale_factor_y) if self.scale_factor_y > 0 else y
-
+        
         return QPoint(src_x, src_y)
-
+    
     def mousePressEvent(self, event):
-        """Начало выделения — конвертируем в координаты source."""
+        """🔧 Начало выделения — конвертируем в координаты source."""
         if event.button() == Qt.LeftButton and self.current_region_id < self.max_regions:
-            # Конвертируем в координаты оригинального изображения
+            # 🔧 Конвертируем в координаты оригинального изображения
             source_pos = self._screen_to_source(event.pos())
             self.start_point = source_pos
             self.end_point = source_pos
             self.is_selecting = True
             self.temp_rect = QRect()
-
+    
     def mouseMoveEvent(self, event):
-        """Процесс выделения — конвертируем в координаты source."""
+        """🔧 Процесс выделения — конвертируем в координаты source."""
         if self.is_selecting:
-            # Конвертируем в координаты оригинального изображения
+            # 🔧 Конвертируем в координаты оригинального изображения
             source_pos = self._screen_to_source(event.pos())
             self.end_point = source_pos
             self.temp_rect = QRect(self.start_point, self.end_point).normalized()
             self.update()
     
     def mouseReleaseEvent(self, event):
-        """Конец выделения — сохраняем в координатах source."""
+        """🔧 Конец выделения — сохраняем в координатах source."""
         if event.button() == Qt.LeftButton and self.is_selecting:
             self.is_selecting = False
             source_pos = self._screen_to_source(event.pos())
             self.end_point = source_pos
             rect = QRect(self.start_point, self.end_point).normalized()
-
+            
             # Минимальный размер области (в координатах source)
             if rect.width() > 5 and rect.height() > 5:
                 region = OcrRegion(rect, self.current_region_id)
                 self.regions.append(region)
                 self.region_selected.emit(self.current_region_id, rect)
                 self.current_region_id += 1
-
+                
                 if self.current_region_id >= self.max_regions:
                     self.region_completed.emit(self.regions)
-
+            
             self.update()
-
+    
     def paintEvent(self, event):
         """Отрисовка изображения и областей."""
         super().paintEvent(event)
-
+        
         if not self.display_pixmap.isNull():
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
-
-            # Рисуем изображение по центру
+            
+            # 🔧 Рисуем изображение по центру
             painter.drawPixmap(self.image_offset_x, self.image_offset_y, self.display_pixmap)
-
-            # Рисуем выделенные области (с масштабированием)
+            
+            # 🔧 Рисуем выделенные области (с масштабированием)
             for region in self.regions:
-                region.draw(painter, self.image_offset_x, self.image_offset_y,
+                region.draw(painter, self.image_offset_x, self.image_offset_y, 
                            self.scale_factor_x, self.scale_factor_y)
-
-            # Рисуем текущую выделяемую область
+            
+            # 🔧 Рисуем текущую выделяемую область
             if self.is_selecting and not self.temp_rect.isEmpty():
                 # Масштабируем временный прямоугольник для отображения
                 display_rect = QRect(
@@ -407,7 +407,7 @@ class OcrImageWidget(QWidget):
         reset_action.triggered.connect(self.reset_regions)
         menu.addAction(reset_action)
         
-        reset_settings_action = QAction("Сбросить настройки изображения", self)
+        reset_settings_action = QAction("🔄 Сбросить настройки изображения", self)
         reset_settings_action.triggered.connect(self.reset_image_settings)
         menu.addAction(reset_settings_action)
         
@@ -420,8 +420,8 @@ class OcrImageWidget(QWidget):
     
     def get_region_image(self, region_id: int, use_adjusted: bool = False) -> QPixmap:
         """
-        Получить изображение области.
-
+        🔧 Получить изображение области.
+        
         Args:
             region_id: ID области
             use_adjusted: Если True — использовать adjusted_pixmap (с яркостью/контрастом),
@@ -429,13 +429,13 @@ class OcrImageWidget(QWidget):
         """
         if 0 <= region_id < len(self.regions):
             rect = self.regions[region_id].rect
-
-            # Используем обработанное изображение если запрошено
+            
+            # 🔧 Используем обработанное изображение если запрошено
             if use_adjusted and not self.adjusted_pixmap.isNull():
                 return self.adjusted_pixmap.copy(rect)
             else:
                 return self.source_pixmap.copy(rect)
-
+        
         return QPixmap()
     
     def recognize_text(self, pixmap: QPixmap, lang: str = 'auto') -> str:
@@ -456,7 +456,7 @@ class OcrImageWidget(QWidget):
             from PIL import Image
             import io
 
-            # Указываем путь к Tesseract
+            # 🔧 Указываем путь к Tesseract
             pytesseract.pytesseract.tesseract_cmd = r'd:\Main_programms\Tesseract\Tesseract-OCR\tesseract.exe'
 
             byte_array = QByteArray()
@@ -467,7 +467,7 @@ class OcrImageWidget(QWidget):
 
             img = Image.open(io.BytesIO(byte_array.data()))
 
-            # Определяем язык и конфиг в зависимости от режима
+            # 🔧 Определяем язык и конфиг в зависимости от режима
             lang_map = {
                 'rus': ('rus', r'--oem 3 --psm 6'),
                 'eng': ('eng', r'--oem 3 --psm 6'),
@@ -483,7 +483,7 @@ class OcrImageWidget(QWidget):
             return text.strip()
 
         except Exception as e:
-            print(f"OCR ошибка: {e}")
+            print(f"❌ OCR ошибка: {e}")
             return f"(OCR ошибка: {str(e)})"
     
     def get_all_regions_data(self) -> list:
@@ -504,7 +504,7 @@ class OcrImageWidget(QWidget):
         if self.temp_png_path and os.path.exists(self.temp_png_path):
             try:
                 os.remove(self.temp_png_path)
-                print(f"Удалён временный файл: {self.temp_png_path}")
+                print(f"🗑 Удалён временный файл: {self.temp_png_path}")
             except:
                 pass
         super().closeEvent(event)

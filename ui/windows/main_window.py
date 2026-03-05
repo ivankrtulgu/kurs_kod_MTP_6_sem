@@ -11,7 +11,7 @@ from ui.windows.book_card_widget import BookCardWidget
 from ui.windows.add_book_widget import AddBookWidget
 from ui.windows.search_widget import SearchWidget
 from ui.windows.about_widget import AboutWidget
-from ui.windows.ocr_widget import OcrWidget
+from ui.windows.ocr_window import OcrWindow
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -233,8 +233,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     existing.showNormal()
                 return
 
-            widget = OcrWidget()
-            sub_window = self._create_sub_window(widget, "OCR — Распознавание текста", 1000, 750)
+            widget = OcrWindow()
+            sub_window = self._create_sub_window(widget, "OCR — Распознавание текста", 1400, 900)
             
             self.mdi_area.addSubWindow(sub_window)
             sub_window.show()

@@ -6,7 +6,7 @@ from ui.generated.ui_add_book_dialog import Ui_AddBookDialog
 
 from core.models.book import Book
 from core.services.book_service import BookService, ValidationError
-from ui.windows.ocr_widget import OcrWidget
+from ui.windows.ocr_window import OcrWindow
 
 
 class AddBookWidget(QWidget, Ui_AddBookDialog):

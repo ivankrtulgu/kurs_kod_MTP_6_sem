@@ -26,7 +26,7 @@ for plugin_path in plugin_paths:
         qt_plugin_path = plugin_path
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(plugin_path, 'platforms')
         os.environ['QT_IMAGEFORMATS_PATH'] = os.path.join(plugin_path, 'imageformats')
-        print(f"Qt plugins path: {plugin_path}")
+        print(f"✅ Qt plugins path: {plugin_path}")
         break
 # ==========================
 
@@ -40,22 +40,22 @@ from PyQt5.QtCore import QRect, Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap, QImageReader, QImage
 
 
-from widgets.ocr_image_widget import OcrImageWidget
+from ui.widgets.ocr_image_widget import OcrImageWidget
 
 
-class TestOcrWindow(QMainWindow):
-    """Тестовое окно для проверки OcrImageWidget с 7 областями."""
+class OcrWindow(QWidget):
+    """Окно OCR распознавания для MDI (на основе TestOcrWindow)."""
 
-    # Сигнал для передачи распознанных данных
+    # Signal when OCR data is ready
     ocr_data_ready = pyqtSignal(dict)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         
-        self.setWindowTitle("OCR — Разметка титульного листа (7 областей)")
-        self.setGeometry(100, 100, 1400, 900)
-
-        # Применяем светлую тему ко всему приложению
+        # Store recognized data
+        self._recognized_data: dict = {}
+        
+        # 🔧 Применяем светлую тему ко всему приложению
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #f5f9f6;
@@ -205,37 +205,34 @@ class TestOcrWindow(QMainWindow):
                 min-width: 80px;
             }
         """)
-        
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        main_layout = QHBoxLayout(central_widget)
+
+        main_layout = QHBoxLayout(self)
         main_layout.setSpacing(16)
         main_layout.setContentsMargins(16, 16, 16, 16)
         
         # ===== ЛЕВАЯ ЧАСТЬ: Изображение =====
         left_layout = QVBoxLayout()
         left_layout.setSpacing(12)
-
-        # Скролл-область для изображения
+        
+        # 🔧 Скролл-область для изображения
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setMinimumSize(800, 600)
-
+        
         self.image_widget = OcrImageWidget()
         self.image_widget.setStyleSheet("background-color: #2d3748; border-radius: 8px;")
         scroll_area.setWidget(self.image_widget)
-
+        
         left_layout.addWidget(scroll_area, stretch=1)
-
-        # Панель настроек изображения
-        settings_group = QGroupBox("Настройки изображения")
+        
+        # 🔧 Панель настроек изображения
+        settings_group = QGroupBox("🎨 Настройки изображения")
         settings_layout = QVBoxLayout(settings_group)
         settings_layout.setSpacing(10)
-
+        
         # Яркость
         brightness_layout = QHBoxLayout()
-        brightness_label = QLabel("Яркость")
+        brightness_label = QLabel("☀️ Яркость")
         brightness_label.setStyleSheet("font-weight: 500; color: #68a385;")
         brightness_label.setFixedWidth(90)
         self.slider_brightness = QSlider(Qt.Horizontal)
@@ -259,7 +256,7 @@ class TestOcrWindow(QMainWindow):
         
         # Контраст
         contrast_layout = QHBoxLayout()
-        contrast_label = QLabel("Контраст")
+        contrast_label = QLabel("🔲 Контраст")
         contrast_label.setStyleSheet("font-weight: 500; color: #68a385;")
         contrast_label.setFixedWidth(90)
         self.slider_contrast = QSlider(Qt.Horizontal)
@@ -282,7 +279,7 @@ class TestOcrWindow(QMainWindow):
         settings_layout.addLayout(contrast_layout)
 
         # Кнопка сброса настроек
-        btn_reset_settings = QPushButton("Сбросить настройки")
+        btn_reset_settings = QPushButton("🔄 Сбросить настройки")
         btn_reset_settings.clicked.connect(self._reset_image_settings)
         btn_reset_settings.setStyleSheet("""
             QPushButton {
@@ -297,18 +294,18 @@ class TestOcrWindow(QMainWindow):
         settings_layout.addWidget(btn_reset_settings)
 
         left_layout.addWidget(settings_group)
-
-        # Настройки языка распознавания
-        lang_group = QGroupBox("Язык распознавания")
+        
+        # 🔧 Настройки языка распознавания
+        lang_group = QGroupBox("🌐 Язык распознавания")
         lang_layout = QVBoxLayout(lang_group)
         lang_layout.setSpacing(8)
-
+        
         self.combo_lang = QComboBox()
-        self.combo_lang.addItem("Русский", "rus")
-        self.combo_lang.addItem("English", "eng")
-        self.combo_lang.addItem("Русский + English (смешанный)", "rus+eng")
-        self.combo_lang.addItem("English + Русский (приоритет EN)", "eng+rus")
-        self.combo_lang.addItem("Цифры и символы", "digits")
+        self.combo_lang.addItem("🇷🇺 Русский", "rus")
+        self.combo_lang.addItem("🇬🇧 English", "eng")
+        self.combo_lang.addItem("🇷🇺🇬🇧 Русский + English (смешанный)", "rus+eng")
+        self.combo_lang.addItem("🇬🇧🇷🇺 English + Русский (приоритет EN)", "eng+rus")
+        self.combo_lang.addItem("🔢 Цифры и символы", "digits")
         self.combo_lang.setCurrentIndex(2)  # По умолчанию rus+eng
         lang_layout.addWidget(self.combo_lang)
         
@@ -318,7 +315,7 @@ class TestOcrWindow(QMainWindow):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
 
-        self.btn_load = QPushButton("Загрузить")
+        self.btn_load = QPushButton("📁 Загрузить")
         self.btn_load.clicked.connect(self._load_image)
         self.btn_load.setStyleSheet("""
             QPushButton {
@@ -331,7 +328,7 @@ class TestOcrWindow(QMainWindow):
         """)
         btn_layout.addWidget(self.btn_load)
 
-        self.btn_reset = QPushButton("Сброс")
+        self.btn_reset = QPushButton("🗑 Сброс")
         self.btn_reset.clicked.connect(self._reset_regions)
         self.btn_reset.setStyleSheet("""
             QPushButton {
@@ -347,7 +344,7 @@ class TestOcrWindow(QMainWindow):
         """)
         btn_layout.addWidget(self.btn_reset)
 
-        self.btn_ocr = QPushButton("Распознать")
+        self.btn_ocr = QPushButton("🔍 Распознать")
         self.btn_ocr.clicked.connect(self._run_ocr)
         self.btn_ocr.setStyleSheet("""
             QPushButton {
@@ -365,7 +362,7 @@ class TestOcrWindow(QMainWindow):
         """)
         btn_layout.addWidget(self.btn_ocr)
 
-        self.btn_export = QPushButton("Экспорт")
+        self.btn_export = QPushButton("💾 Экспорт")
         self.btn_export.clicked.connect(self._export_regions)
         self.btn_export.setStyleSheet("""
             QPushButton {
@@ -389,7 +386,7 @@ class TestOcrWindow(QMainWindow):
         right_layout.setSpacing(12)
 
         # Статус
-        status_group = QGroupBox("Статус")
+        status_group = QGroupBox("📊 Статус")
         status_layout = QVBoxLayout(status_group)
         status_layout.setSpacing(8)
 
@@ -408,7 +405,7 @@ class TestOcrWindow(QMainWindow):
         right_layout.addWidget(status_group)
         
         # Список областей
-        regions_group = QGroupBox("Выделенные области")
+        regions_group = QGroupBox("📋 Выделенные области")
         regions_layout = QVBoxLayout(regions_group)
         regions_layout.setSpacing(0)
         
@@ -428,7 +425,7 @@ class TestOcrWindow(QMainWindow):
         right_layout.addWidget(regions_group)
         
         # Предпросмотр
-        preview_group = QGroupBox("Предпросмотр")
+        preview_group = QGroupBox("👁 Предпросмотр")
         preview_layout = QVBoxLayout(preview_group)
         preview_layout.setSpacing(0)
         
@@ -446,7 +443,7 @@ class TestOcrWindow(QMainWindow):
         right_layout.addWidget(preview_group)
         
         # Результат OCR
-        ocr_group = QGroupBox("Результат OCR")
+        ocr_group = QGroupBox("📝 Результат OCR")
         ocr_layout = QVBoxLayout(ocr_group)
         ocr_layout.setSpacing(0)
         
@@ -463,10 +460,33 @@ class TestOcrWindow(QMainWindow):
         ocr_layout.addWidget(self.text_ocr_result)
         
         right_layout.addWidget(ocr_group)
-        
+
+        # Кнопка "Применить данные"
+        self.btn_apply = QPushButton("✅ Применить данные")
+        self.btn_apply.clicked.connect(self._on_apply)
+        self.btn_apply.setEnabled(False)
+        self.btn_apply.setStyleSheet("""
+            QPushButton {
+                background-color: #68a385;
+                border: none;
+                color: white;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #4a9f6e;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b5f;
+            }
+            QPushButton:disabled {
+                background-color: #cbd5e0;
+            }
+        """)
+        right_layout.addWidget(self.btn_apply)
+
         right_layout.addStretch()
-        
-        self.btn_close = QPushButton("Закрыть")
+
+        self.btn_close = QPushButton("❌ Закрыть")
         self.btn_close.clicked.connect(self.close)
         self.btn_close.setStyleSheet("""
             QPushButton {
@@ -486,29 +506,6 @@ class TestOcrWindow(QMainWindow):
         self.image_widget.region_selected.connect(self._on_region_selected)
         self.image_widget.region_completed.connect(self._on_region_completed)
         self.image_widget.image_loaded.connect(self._on_image_loaded)
-
-        # Кнопка "Готово" для передачи данных
-        self.btn_done = QPushButton("Применить данные")
-        self.btn_done.clicked.connect(self._on_done)
-        self.btn_done.setStyleSheet("""
-            QPushButton {
-                background-color: #68a385;
-                border: none;
-                color: white;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #4a9f6e;
-            }
-            QPushButton:pressed {
-                background-color: #3d8b5f;
-            }
-            QPushButton:disabled {
-                background-color: #cbd5e0;
-            }
-        """)
-        self.btn_done.setEnabled(False)
-        btn_layout.addWidget(self.btn_done)
     
     def _load_image(self):
         """Загрузить изображение."""
@@ -520,10 +517,10 @@ class TestOcrWindow(QMainWindow):
         )
         
         if file_path:
-            print(f"Выбран файл: {file_path}")
-
+            print(f"📁 Выбран файл: {file_path}")
+            
             if not os.path.exists(file_path):
-                print(f"Файл не существует: {file_path}")
+                print(f"❌ Файл не существует: {file_path}")
                 QMessageBox.warning(self, "Ошибка", f"Файл не найден:\n{file_path}")
                 return
             
@@ -567,7 +564,7 @@ class TestOcrWindow(QMainWindow):
         self.label_progress.setText(f"Области: {region_id + 1}/7")
         self._update_table()
 
-        # Предпросмотр с применёнными настройками (яркость/контраст)
+        # 🔧 Предпросмотр с применёнными настройками (яркость/контраст)
         cropped = self.image_widget.get_region_image(region_id, use_adjusted=True)
         if not cropped.isNull():
             self.label_preview.setPixmap(
@@ -576,14 +573,14 @@ class TestOcrWindow(QMainWindow):
     
     def _on_region_completed(self, regions: list):
         """Все 7 областей выделены."""
-        self.label_status.setText("Все области выделены!")
+        self.label_status.setText("✅ Все области выделены!")
         self.label_progress.setText("Области: 7/7 — Готово!")
-        self.btn_done.setEnabled(True)
+        self.btn_apply.setEnabled(True)
 
         QMessageBox.information(
             self, "Завершено",
             "Все 7 областей выделены!\n\n"
-            "Нажмите 'Распознать текст (OCR)' для распознавания."
+            "Нажмите '🔍 Распознать текст (OCR)' для распознавания."
         )
     
     def _update_table(self):
@@ -600,7 +597,7 @@ class TestOcrWindow(QMainWindow):
             ocr_text = region.ocr_text if hasattr(region, 'ocr_text') else "-"
             self.table_regions.setItem(i, 3, QTableWidgetItem(ocr_text[:30] + "..." if len(ocr_text) > 30 else ocr_text))
             
-            self.table_regions.setItem(i, 4, QTableWidgetItem("OK"))
+            self.table_regions.setItem(i, 4, QTableWidgetItem("✅"))
     
     def _run_ocr(self):
         """Запустить распознавание текста."""
@@ -608,28 +605,28 @@ class TestOcrWindow(QMainWindow):
             QMessageBox.warning(self, "Ошибка", "Сначала выделите области!")
             return
 
-        # Получаем выбранный язык
+        # 🔧 Получаем выбранный язык
         lang = self.combo_lang.currentData()
         lang_name = self.combo_lang.currentText()
 
         print("\n" + "="*60)
-        print("НАЧАЛО РАСПОЗНАВАНИЯ ТЕКСТА (OCR)")
+        print("🔍 НАЧАЛО РАСПОЗНАВАНИЯ ТЕКСТА (OCR)")
         print("="*60)
-        print(f"Язык: {lang_name} ({lang})")
+        print(f"🌐 Язык: {lang_name} ({lang})")
 
-        # Проверяем, есть ли отличия от оригинала
+        # 🔧 Проверяем, есть ли отличия от оригинала
         has_adjustments = (
             self.image_widget.brightness_value != 0 or
             self.image_widget.contrast_value != 0
         )
 
         # if has_adjustments:
-        #     print(f"Используются настройки: яркость={self.image_widget.brightness_value}, контраст={self.image_widget.contrast_value}")
+        #     print(f"🎨 Используются настройки: яркость={self.image_widget.brightness_value}, контраст={self.image_widget.contrast_value}")
 
         ocr_results = []
 
         for region in self.image_widget.regions:
-            # Получаем область с применёнными настройками яркости/контраста
+            # 🔧 Получаем область с применёнными настройками яркости/контраста
             cropped = self.image_widget.get_region_image(region.id, use_adjusted=True)
             if not cropped.isNull():
                 text = self.image_widget.recognize_text(cropped, lang=lang)
@@ -641,18 +638,18 @@ class TestOcrWindow(QMainWindow):
                     'text': text
                 })
 
-                print(f"\nОбласть #{region.id} — {region.name}:")
+                print(f"\n📋 Область #{region.id} — {region.name}:")
                 print(f"   Размер: {region.rect.width()}x{region.rect.height()}")
                 print(f"   Текст: {text if text else '(не распознано)'}")
                 print("-"*60)
-
+        
         self._update_table()
-
+        
         full_text = "\n".join([f"{r['name']}: {r['text']}" for r in ocr_results])
         self.text_ocr_result.setText(full_text if full_text else "Текст не распознан")
-
+        
         print("\n" + "="*60)
-        print("РАСПОЗНАВАНИЕ ЗАВЕРШЕНО")
+        print("✅ РАСПОЗНАВАНИЕ ЗАВЕРШЕНО")
         print("="*60 + "\n")
         
         QMessageBox.information(
@@ -669,35 +666,6 @@ class TestOcrWindow(QMainWindow):
         self.table_regions.setRowCount(0)
         self.label_preview.clear()
         self.text_ocr_result.setText("Распознанный текст появится здесь...")
-        self.btn_done.setEnabled(False)
-
-    def _on_done(self):
-        """Передать распознанные данные и закрыть окно."""
-        ocr_data = self._get_recognized_data()
-        if ocr_data:
-            self.ocr_data_ready.emit(ocr_data)
-        self.close()
-
-    def _get_recognized_data(self) -> dict:
-        """Получить распознанные данные в формате для AddBookDialog."""
-        data = {}
-        for region in self.image_widget.regions:
-            if region.ocr_text:
-                if region.id == 0:  # Автор
-                    data['author'] = region.ocr_text
-                elif region.id == 1:  # Название
-                    data['title'] = region.ocr_text
-                elif region.id == 2:  # Издательство
-                    data['publisher'] = region.ocr_text
-                elif region.id == 3:  # Год
-                    data['year'] = region.ocr_text
-                elif region.id == 4:  # ISBN
-                    data['isbn'] = region.ocr_text
-                elif region.id == 5:  # УДК
-                    data['udc'] = region.ocr_text
-                elif region.id == 6:  # ББК
-                    data['bbk'] = region.ocr_text
-        return data
     
     def _export_regions(self):
         """Экспортировать области."""
@@ -718,6 +686,41 @@ class TestOcrWindow(QMainWindow):
             f"Сохранено {len(self.image_widget.regions)} областей\n"
             "в папку: temp/ocr_regions/"
         )
+
+    def _on_apply(self):
+        """Применить данные и закрыть окно."""
+        ocr_data = self._get_recognized_data()
+        if ocr_data:
+            self.ocr_data_ready.emit(ocr_data)
+        
+        # Закрыть родительское подокно
+        from PyQt5.QtWidgets import QMdiSubWindow
+        parent = self.parent()
+        if isinstance(parent, QMdiSubWindow):
+            parent.close()
+        else:
+            self.close()
+
+    def _get_recognized_data(self) -> dict:
+        """Получить распознанные данные для AddBookWidget."""
+        data = {}
+        for region in self.image_widget.regions:
+            if region.ocr_text:
+                if region.id == 0:  # Author
+                    data['author'] = region.ocr_text
+                elif region.id == 1:  # Title
+                    data['title'] = region.ocr_text
+                elif region.id == 2:  # Publisher
+                    data['publisher'] = region.ocr_text
+                elif region.id == 3:  # Year
+                    data['year'] = region.ocr_text
+                elif region.id == 4:  # ISBN
+                    data['isbn'] = region.ocr_text
+                elif region.id == 5:  # UDC
+                    data['udc'] = region.ocr_text
+                elif region.id == 6:  # BBK
+                    data['bbk'] = region.ocr_text
+        return data
 
 
 def run_test():
