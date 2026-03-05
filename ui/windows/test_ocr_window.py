@@ -52,21 +52,175 @@ class TestOcrWindow(QMainWindow):
         self.setWindowTitle("OCR — Разметка титульного листа (7 областей)")
         self.setGeometry(100, 100, 1400, 900)
         
+        # 🔧 Применяем светлую тему ко всему приложению
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f5f9f6;
+            }
+            QWidget {
+                background-color: #f5f9f6;
+                color: #2d3748;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 13px;
+            }
+            QGroupBox {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-top: 12px;
+                padding-top: 16px;
+                font-weight: 600;
+                color: #4a5568;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 16px;
+                padding: 0 8px;
+                color: #68a385;
+            }
+            QPushButton {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 20px;
+                color: #4a5568;
+                font-weight: 500;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #f0fff4;
+                border-color: #68a385;
+                color: #68a385;
+            }
+            QPushButton:pressed {
+                background-color: #e8f5e9;
+                border-color: #4a9f6e;
+            }
+            QPushButton:disabled {
+                background-color: #f7fafc;
+                border-color: #e2e8f0;
+                color: #cbd5e0;
+            }
+            QComboBox {
+                padding: 8px 12px;
+                background-color: #ffffff;
+                color: #4a5568;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                font-size: 13px;
+            }
+            QComboBox:hover {
+                border-color: #68a385;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 24px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid #68a385;
+                margin-right: 8px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                selection-background-color: #f0fff4;
+                selection-color: #68a385;
+                outline: none;
+                padding: 4px;
+            }
+            QComboBox QAbstractItemView::item {
+                padding: 8px 12px;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #f0fff4;
+            }
+            QSlider::groove:horizontal {
+                background: #e2e8f0;
+                height: 6px;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #68a385;
+                width: 18px;
+                margin: -6px 0;
+                border-radius: 9px;
+            }
+            QSlider::handle:horizontal:hover {
+                background: #4a9f6e;
+            }
+            QSlider::sub-page:horizontal {
+                background: #68a385;
+                border-radius: 3px;
+            }
+            QLabel {
+                color: #4a5568;
+                font-size: 13px;
+            }
+            QTableWidget {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                gridline-color: #f0f4f1;
+                font-size: 12px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border: none;
+            }
+            QTableWidget::item:selected {
+                background-color: #f0fff4;
+                color: #68a385;
+            }
+            QHeaderView::section {
+                background-color: #f8faf9;
+                color: #68a385;
+                font-weight: 600;
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid #e2e8f0;
+                border-radius: 0;
+            }
+            QScrollArea {
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                background-color: #ffffff;
+            }
+            QMessageBox {
+                background-color: #ffffff;
+            }
+            QMessageBox QLabel {
+                color: #4a5568;
+            }
+            QMessageBox QPushButton {
+                min-width: 80px;
+            }
+        """)
+        
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(16, 16, 16, 16)
         
         # ===== ЛЕВАЯ ЧАСТЬ: Изображение =====
         left_layout = QVBoxLayout()
+        left_layout.setSpacing(12)
         
         # 🔧 Скролл-область для изображения
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("background-color: #1a1a1a;")
         scroll_area.setMinimumSize(800, 600)
         
         self.image_widget = OcrImageWidget()
+        self.image_widget.setStyleSheet("background-color: #2d3748; border-radius: 8px;")
         scroll_area.setWidget(self.image_widget)
         
         left_layout.addWidget(scroll_area, stretch=1)
@@ -74,17 +228,27 @@ class TestOcrWindow(QMainWindow):
         # 🔧 Панель настроек изображения
         settings_group = QGroupBox("🎨 Настройки изображения")
         settings_layout = QVBoxLayout(settings_group)
+        settings_layout.setSpacing(10)
         
         # Яркость
         brightness_layout = QHBoxLayout()
-        brightness_label = QLabel("☀️ Яркость:")
-        brightness_label.setFixedWidth(80)
+        brightness_label = QLabel("☀️ Яркость")
+        brightness_label.setStyleSheet("font-weight: 500; color: #68a385;")
+        brightness_label.setFixedWidth(90)
         self.slider_brightness = QSlider(Qt.Horizontal)
         self.slider_brightness.setRange(-100, 100)
         self.slider_brightness.setValue(0)
         self.slider_brightness.valueChanged.connect(self._on_brightness_changed)
         self.label_brightness_value = QLabel("0")
-        self.label_brightness_value.setFixedWidth(30)
+        self.label_brightness_value.setFixedWidth(35)
+        self.label_brightness_value.setStyleSheet("""
+            background-color: #f0fff4;
+            color: #68a385;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+        """)
+        self.label_brightness_value.setAlignment(Qt.AlignCenter)
         brightness_layout.addWidget(brightness_label)
         brightness_layout.addWidget(self.slider_brightness)
         brightness_layout.addWidget(self.label_brightness_value)
@@ -92,14 +256,23 @@ class TestOcrWindow(QMainWindow):
         
         # Контраст
         contrast_layout = QHBoxLayout()
-        contrast_label = QLabel("🔲 Контраст:")
-        contrast_label.setFixedWidth(80)
+        contrast_label = QLabel("🔲 Контраст")
+        contrast_label.setStyleSheet("font-weight: 500; color: #68a385;")
+        contrast_label.setFixedWidth(90)
         self.slider_contrast = QSlider(Qt.Horizontal)
         self.slider_contrast.setRange(-100, 100)
         self.slider_contrast.setValue(0)
         self.slider_contrast.valueChanged.connect(self._on_contrast_changed)
         self.label_contrast_value = QLabel("0")
-        self.label_contrast_value.setFixedWidth(30)
+        self.label_contrast_value.setFixedWidth(35)
+        self.label_contrast_value.setStyleSheet("""
+            background-color: #f0fff4;
+            color: #68a385;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+        """)
+        self.label_contrast_value.setAlignment(Qt.AlignCenter)
         contrast_layout.addWidget(contrast_label)
         contrast_layout.addWidget(self.slider_contrast)
         contrast_layout.addWidget(self.label_contrast_value)
@@ -108,6 +281,16 @@ class TestOcrWindow(QMainWindow):
         # Кнопка сброса настроек
         btn_reset_settings = QPushButton("🔄 Сбросить настройки")
         btn_reset_settings.clicked.connect(self._reset_image_settings)
+        btn_reset_settings.setStyleSheet("""
+            QPushButton {
+                background-color: #f8faf9;
+                border: 1px solid #e2e8f0;
+            }
+            QPushButton:hover {
+                background-color: #f0fff4;
+                border-color: #68a385;
+            }
+        """)
         settings_layout.addWidget(btn_reset_settings)
 
         left_layout.addWidget(settings_group)
@@ -115,12 +298,8 @@ class TestOcrWindow(QMainWindow):
         # 🔧 Настройки языка распознавания
         lang_group = QGroupBox("🌐 Язык распознавания")
         lang_layout = QVBoxLayout(lang_group)
+        lang_layout.setSpacing(8)
         
-        lang_info_label = QLabel("Выберите приоритетный язык:")
-        lang_info_label.setStyleSheet("color: #aaa;")
-        lang_layout.addWidget(lang_info_label)
-        
-        # 🔧 Выпадающий список языков
         self.combo_lang = QComboBox()
         self.combo_lang.addItem("🇷🇺 Русский", "rus")
         self.combo_lang.addItem("🇬🇧 English", "eng")
@@ -128,48 +307,74 @@ class TestOcrWindow(QMainWindow):
         self.combo_lang.addItem("🇬🇧🇷🇺 English + Русский (приоритет EN)", "eng+rus")
         self.combo_lang.addItem("🔢 Цифры и символы", "digits")
         self.combo_lang.setCurrentIndex(2)  # По умолчанию rus+eng
-        self.combo_lang.setStyleSheet("""
-            QComboBox {
-                padding: 5px;
-                background-color: #2a2a2a;
-                color: #fff;
-                border: 1px solid #444;
-                border-radius: 3px;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 8px solid #aaa;
-                margin-right: 5px;
-            }
-        """)
         lang_layout.addWidget(self.combo_lang)
         
         left_layout.addWidget(lang_group)
 
         # Кнопки управления
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
 
-        self.btn_load = QPushButton("📁 Загрузить изображение")
+        self.btn_load = QPushButton("📁 Загрузить")
         self.btn_load.clicked.connect(self._load_image)
+        self.btn_load.setStyleSheet("""
+            QPushButton {
+                background-color: #f8faf9;
+            }
+            QPushButton:hover {
+                background-color: #f0fff4;
+                border-color: #68a385;
+            }
+        """)
         btn_layout.addWidget(self.btn_load)
 
-        self.btn_reset = QPushButton("🗑 Сбросить области")
+        self.btn_reset = QPushButton("🗑 Сброс")
         self.btn_reset.clicked.connect(self._reset_regions)
+        self.btn_reset.setStyleSheet("""
+            QPushButton {
+                background-color: #fff5f5;
+                border-color: #fed7d7;
+                color: #e53e3e;
+            }
+            QPushButton:hover {
+                background-color: #fed7d7;
+                border-color: #e53e3e;
+                color: #c53030;
+            }
+        """)
         btn_layout.addWidget(self.btn_reset)
 
-        self.btn_ocr = QPushButton("🔍 Распознать текст (OCR)")
+        self.btn_ocr = QPushButton("🔍 Распознать")
         self.btn_ocr.clicked.connect(self._run_ocr)
-        self.btn_ocr.setStyleSheet("background-color: #4CAF50; color: white;")
+        self.btn_ocr.setStyleSheet("""
+            QPushButton {
+                background-color: #68a385;
+                border: none;
+                color: white;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #4a9f6e;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b5f;
+            }
+        """)
         btn_layout.addWidget(self.btn_ocr)
 
-        self.btn_export = QPushButton("💾 Экспорт областей")
+        self.btn_export = QPushButton("💾 Экспорт")
         self.btn_export.clicked.connect(self._export_regions)
+        self.btn_export.setStyleSheet("""
+            QPushButton {
+                background-color: #ebf8ff;
+                border-color: #bee3f8;
+                color: #3182ce;
+            }
+            QPushButton:hover {
+                background-color: #bee3f8;
+                border-color: #3182ce;
+            }
+        """)
         btn_layout.addWidget(self.btn_export)
 
         left_layout.addLayout(btn_layout)
@@ -178,18 +383,23 @@ class TestOcrWindow(QMainWindow):
 
         # ===== ПРАВАЯ ЧАСТЬ: Информация =====
         right_layout = QVBoxLayout()
+        right_layout.setSpacing(12)
 
         # Статус
         status_group = QGroupBox("📊 Статус")
         status_layout = QVBoxLayout(status_group)
+        status_layout.setSpacing(8)
 
         self.label_status = QLabel("Изображение не загружено")
+        self.label_status.setStyleSheet("color: #718096; font-style: italic;")
         status_layout.addWidget(self.label_status)
 
         self.label_progress = QLabel("Области: 0/7")
+        self.label_progress.setStyleSheet("font-weight: 600; color: #68a385;")
         status_layout.addWidget(self.label_progress)
 
-        self.label_image_size = QLabel("Размер: -")
+        self.label_image_size = QLabel("Размер: —")
+        self.label_image_size.setStyleSheet("color: #a0aec0;")
         status_layout.addWidget(self.label_image_size)
 
         right_layout.addWidget(status_group)
@@ -197,6 +407,7 @@ class TestOcrWindow(QMainWindow):
         # Список областей
         regions_group = QGroupBox("📋 Выделенные области")
         regions_layout = QVBoxLayout(regions_group)
+        regions_layout.setSpacing(0)
         
         self.table_regions = QTableWidget()
         self.table_regions.setColumnCount(5)
@@ -204,22 +415,29 @@ class TestOcrWindow(QMainWindow):
             ["ID", "Область", "Размер", "Текст", "Статус"]
         )
         self.table_regions.horizontalHeader().setStretchLastSection(True)
-        self.table_regions.setColumnWidth(0, 40)
+        self.table_regions.setColumnWidth(0, 45)
         self.table_regions.setColumnWidth(1, 100)
-        self.table_regions.setColumnWidth(2, 80)
-        self.table_regions.setColumnWidth(3, 200)
+        self.table_regions.setColumnWidth(2, 85)
+        self.table_regions.setColumnWidth(3, 180)
+        self.table_regions.verticalHeader().setVisible(False)
         regions_layout.addWidget(self.table_regions)
         
         right_layout.addWidget(regions_group)
         
         # Предпросмотр
-        preview_group = QGroupBox("👁 Предпросмотр последней области")
+        preview_group = QGroupBox("👁 Предпросмотр")
         preview_layout = QVBoxLayout(preview_group)
+        preview_layout.setSpacing(0)
         
         self.label_preview = QLabel()
         self.label_preview.setMinimumSize(200, 100)
+        self.label_preview.setMaximumHeight(120)
         self.label_preview.setAlignment(Qt.AlignCenter)
-        self.label_preview.setStyleSheet("background-color: #333;")
+        self.label_preview.setStyleSheet("""
+            background-color: #f7fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+        """)
         preview_layout.addWidget(self.label_preview)
         
         right_layout.addWidget(preview_group)
@@ -227,10 +445,17 @@ class TestOcrWindow(QMainWindow):
         # Результат OCR
         ocr_group = QGroupBox("📝 Результат OCR")
         ocr_layout = QVBoxLayout(ocr_group)
+        ocr_layout.setSpacing(0)
         
         self.text_ocr_result = QLabel("Распознанный текст появится здесь...")
         self.text_ocr_result.setWordWrap(True)
-        self.text_ocr_result.setStyleSheet("background-color: #2a2a2a; color: #0f0; padding: 10px;")
+        self.text_ocr_result.setStyleSheet("""
+            background-color: #f8faf9;
+            color: #4a5568;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        """)
         self.text_ocr_result.setMinimumHeight(150)
         ocr_layout.addWidget(self.text_ocr_result)
         
@@ -240,6 +465,16 @@ class TestOcrWindow(QMainWindow):
         
         self.btn_close = QPushButton("❌ Закрыть")
         self.btn_close.clicked.connect(self.close)
+        self.btn_close.setStyleSheet("""
+            QPushButton {
+                background-color: #f7fafc;
+                border-color: #e2e8f0;
+            }
+            QPushButton:hover {
+                background-color: #edf2f7;
+                border-color: #cbd5e0;
+            }
+        """)
         right_layout.addWidget(self.btn_close)
         
         main_layout.addLayout(right_layout, stretch=1)
