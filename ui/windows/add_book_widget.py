@@ -64,44 +64,45 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
     def _validate_inputs(self) -> tuple[bool, str]:
         """
         Validate all required input fields.
+        Required fields match UI markers (*): Author, Title, Place, Publisher, Year, Pages, ISBN
 
         Returns:
             tuple[bool, str]: (is_valid, error_message)
         """
-        # Validate author
+        # Validate author (*)
         author = self.input_author.text().strip()
         if not author:
             return False, "Поле 'Автор' обязательно для заполнения"
 
-        # Validate title
+        # Validate title (*)
         title = self.input_title.text().strip()
         if not title:
             return False, "Поле 'Название' обязательно для заполнения"
 
-        # Validate year (1900-2100) - already validated by QSpinBox
-        year = self.input_year.value()
-        if not (1900 <= year <= 2100):
-            return False, "Год должен быть в диапазоне 1900-2100"
-
-        # Validate pages - already validated by QSpinBox
-        pages = self.input_pages.value()
-        if pages <= 0:
-            return False, "Количество страниц должно быть больше 0"
-
-        # Validate ISBN
-        isbn = self.input_isbn.text().strip()
-        if not isbn:
-            return False, "Поле 'ISBN' обязательно для заполнения"
-
-        # Validate place
+        # Validate place (*)
         place = self.input_place.text().strip()
         if not place:
             return False, "Поле 'Место издания' обязательно для заполнения"
 
-        # Validate publisher
+        # Validate publisher (*)
         publisher = self.input_publisher.text().strip()
         if not publisher:
             return False, "Поле 'Издательство' обязательно для заполнения"
+
+        # Validate year (*) - already validated by QSpinBox (1900-2100)
+        year = self.input_year.value()
+        if not (1900 <= year <= 2100):
+            return False, "Год должен быть в диапазоне 1900-2100"
+
+        # Validate pages (*) - already validated by QSpinBox (minimum 1)
+        pages = self.input_pages.value()
+        if pages <= 0:
+            return False, "Количество страниц должно быть больше 0"
+
+        # Validate ISBN (*)
+        isbn = self.input_isbn.text().strip()
+        if not isbn:
+            return False, "Поле 'ISBN' обязательно для заполнения"
 
         # Validate cover image exists if specified
         cover_path = self.input_cover_path.text().strip()
@@ -219,8 +220,8 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
                 f"Книга '{book.title}' успешно добавлена с ID: {book_id}"
             )
             
-            # Clear form for next entry
-            self._clear_form()
+            # Close the add book window after successful save
+            self._close_window()
 
         except ValidationError as e:
             QMessageBox.warning(self, "Ошибка валидации", str(e))
@@ -228,6 +229,15 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить книгу: {e}")
             # Don't close widget on error
+
+    def _close_window(self):
+        """Close the add book window."""
+        parent = self.parent()
+        from PyQt5.QtWidgets import QMdiSubWindow
+        if isinstance(parent, QMdiSubWindow):
+            parent.close()
+        else:
+            self.close()
 
     def _on_cancel(self):
         """Handle cancel button - close the widget."""
@@ -241,7 +251,7 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
             )
             if reply != QMessageBox.Yes:
                 return
-        
+
         # Close parent subwindow if exists
         from PyQt5.QtWidgets import QMdiSubWindow
         parent = self.parent()
@@ -250,41 +260,16 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
         else:
             self.close()
 
-    def _clear_form(self):
-        """Clear all form fields for next entry."""
-        self.input_author.clear()
-        self.input_title.clear()
-        self.input_subtitle.clear()
-        self.input_responsibility.clear()
-        self.input_edition.clear()
-        self.input_place.clear()
-        self.input_publisher.clear()
-        self.input_year.setValue(2024)
-        self.input_pages.setValue(1)
-        self.input_isbn.clear()
-        self.input_copyright.clear()
-        self.input_udc.clear()
-        self.input_bbk.clear()
-        self.input_author_mark.clear()
-        self.text_reviewers.clear()
-        self.text_annotation.clear()
-        self.text_abstract.clear()
-        self.input_doi.clear()
-        self.input_content_type.setText("Текст")
-        self.input_access_method.setText("непосредственный")
-        self.input_cover_path.clear()
-        self._ocr_data = {}
-
     def _has_data(self) -> bool:
         """Check if form has any data entered."""
         if self.input_author.text().strip():
             return True
         if self.input_title.text().strip():
             return True
-        if self.input_isbn.text().strip():
+        if self.input_place.text().strip():
             return True
         if self.input_publisher.text().strip():
             return True
-        if self.input_place.text().strip():
+        if self.input_isbn.text().strip():
             return True
         return False

@@ -21,6 +21,7 @@ class Ui_OcrProgressDialog(object):
         self.horizontalLayout_header = QtWidgets.QHBoxLayout()
         self.horizontalLayout_header.setObjectName("horizontalLayout_header")
         self.label_icon = QtWidgets.QLabel(OcrProgressDialog)
+        self.label_icon.setText("")
         font = QtGui.QFont()
         font.setPointSize(48)
         self.label_icon.setFont(font)
@@ -65,7 +66,6 @@ class Ui_OcrProgressDialog(object):
     def retranslateUi(self, OcrProgressDialog):
         _translate = QtCore.QCoreApplication.translate
         OcrProgressDialog.setWindowTitle(_translate("OcrProgressDialog", "Распознавание текста"))
-        self.label_icon.setText(_translate("OcrProgressDialog", ""))
         self.label_title.setText(_translate("OcrProgressDialog", "Распознавание текста с изображения"))
         self.progress_bar.setFormat(_translate("OcrProgressDialog", "%p%"))
         self.label_status.setText(_translate("OcrProgressDialog", "Обработка изображения..."))
