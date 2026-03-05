@@ -65,7 +65,7 @@ class Ui_OcrProgressDialog(object):
     def retranslateUi(self, OcrProgressDialog):
         _translate = QtCore.QCoreApplication.translate
         OcrProgressDialog.setWindowTitle(_translate("OcrProgressDialog", "Распознавание текста"))
-        self.label_icon.setText(_translate("OcrProgressDialog", "📷"))
+        self.label_icon.setText(_translate("OcrProgressDialog", ""))
         self.label_title.setText(_translate("OcrProgressDialog", "Распознавание текста с изображения"))
         self.progress_bar.setFormat(_translate("OcrProgressDialog", "%p%"))
         self.label_status.setText(_translate("OcrProgressDialog", "Обработка изображения..."))

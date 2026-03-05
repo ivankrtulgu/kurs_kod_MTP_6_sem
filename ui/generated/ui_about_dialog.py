@@ -51,7 +51,7 @@ class Ui_AboutDialog(object):
     def retranslateUi(self, AboutDialog):
         _translate = QtCore.QCoreApplication.translate
         AboutDialog.setWindowTitle(_translate("AboutDialog", "О программе"))
-        self.label_icon.setText(_translate("AboutDialog", "📚"))
+        self.label_icon.setText(_translate("AboutDialog", ""))
         self.label_app_name.setText(_translate("AboutDialog", "Библиотека OCR"))
         self.label_version.setText(_translate("AboutDialog", "Версия 1.0.0"))
         self.text_description.setPlainText(_translate("AboutDialog", "Приложение для каталогизации книг с функцией OCR.\n"

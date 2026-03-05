@@ -1,49 +1,171 @@
 # ui/windows/search_dialog.py
+"""Search dialog with repository integration."""
+
 from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox
 from ui.generated.ui_search_dialog import Ui_SearchDialog
 
+from core.services.book_service import BookService
+from core.models.book import Book
+
 
 class SearchDialog(QDialog, Ui_SearchDialog):
-    """Диалог поиска по каталогу."""
-    
-    def __init__(self, parent=None):
+    """Диалог поиска по каталогу с интеграцией репозитория."""
+
+    def __init__(self, parent=None, book_service: BookService | None = None):
         super().__init__(parent)
         self.setupUi(self)
+        
+        # Inject service
+        self._book_service = book_service or BookService()
+        
+        # Store search results
+        self._search_results: list[Book] = []
+        
         self._connect_signals()
-    
+        self._setup_table()
+
     def _connect_signals(self):
+        """Connect button signals."""
         self.btn_search.clicked.connect(self._on_search)
         self.btn_clear.clicked.connect(self._on_clear)
         self.btn_close.clicked.connect(self.reject)
         self.btn_open.clicked.connect(self._on_open)
-    
+        
+        # Connect double-click to open
+        self.table_results.doubleClicked.connect(self._on_open)
+
+    def _setup_table(self):
+        """Setup search results table."""
+        self.table_results.setColumnCount(5)
+        self.table_results.setHorizontalHeaderLabels([
+            "ID", "Автор", "Название", "Год", "ISBN"
+        ])
+        self.table_results.horizontalHeader().setStretchLastSection(True)
+        self.table_results.setSelectionBehavior(
+            self.table_results.SelectRows
+        )
+        self.table_results.setSelectionMode(
+            self.table_results.SingleSelection
+        )
+
     def _on_search(self):
-        """Выполнить поиск."""
-        # Тестовые результаты
-        test_results = [
-            (1, "Иванов И.И.", "Основы программирования", 2024, "978-5-02-040500-0"),
-            (3, "Сидоров С.С.", "Python для начинающих", 2024, "978-5-02-040502-4"),
-        ]
+        """Execute search using repository."""
+        try:
+            # Build search query from all fields
+            author = self.input_search_author.text().strip()
+            title = self.input_search_title.text().strip()
+            isbn = self.input_search_isbn.text().strip()
+            udc = self.input_search_udc.text().strip()
+            
+            # Combine all search terms
+            search_terms = []
+            if author:
+                search_terms.append(author)
+            if title:
+                search_terms.append(title)
+            if isbn:
+                search_terms.append(isbn)
+            if udc:
+                search_terms.append(udc)
+            
+            query = " ".join(search_terms)
+            
+            if not query:
+                QMessageBox.warning(self, "Поиск", "Введите хотя бы один поисковый запрос")
+                return
+            
+            # Search via service
+            self._search_results = self._book_service.search_books(query)
+            
+            # Display results
+            self._display_results(self._search_results)
+            
+            self.groupBox_search.setTitle(f"Параметры поиска (найдено: {len(self._search_results)})")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка поиска", f"Ошибка: {e}")
+
+    def _display_results(self, books: list[Book]):
+        """Display search results in table."""
+        self.table_results.setRowCount(len(books))
         
-        self.table_results.setRowCount(len(test_results))
-        for row, book in enumerate(test_results):
-            for col, value in enumerate(book):
-                self.table_results.setItem(row, col, QTableWidgetItem(str(value)))
+        for row, book in enumerate(books):
+            self.table_results.setItem(row, 0, QTableWidgetItem(str(book.id)))
+            self.table_results.setItem(row, 1, QTableWidgetItem(book.author))
+            self.table_results.setItem(row, 2, QTableWidgetItem(book.title))
+            self.table_results.setItem(row, 3, QTableWidgetItem(str(book.year)))
+            self.table_results.setItem(row, 4, QTableWidgetItem(book.isbn))
         
-        QMessageBox.information(self, "Поиск", f"Найдено: {len(test_results)} книг")
-    
+        # Adjust column widths
+        self.table_results.resizeColumnsToContents()
+
     def _on_clear(self):
-        """Очистить поля."""
+        """Clear search fields and results."""
         self.input_search_author.clear()
         self.input_search_title.clear()
         self.input_search_isbn.clear()
         self.input_search_udc.clear()
+        self.input_search_year_from.setValue(1900)
+        self.input_search_year_to.setValue(2100)
         self.table_results.setRowCount(0)
-    
+        self._search_results = []
+        self.groupBox_search.setTitle("Параметры поиска")
+
     def _on_open(self):
-        """Открыть выбранную книгу."""
+        """Open selected book details."""
+        try:
+            row = self.table_results.currentRow()
+            if row < 0:
+                QMessageBox.warning(self, "Открыть", "Выберите книгу из списка")
+                return
+            
+            # Get book ID from table
+            book_id_item = self.table_results.item(row, 0)
+            if not book_id_item:
+                QMessageBox.warning(self, "Открыть", "Не удалось получить ID книги")
+                return
+            
+            book_id = int(book_id_item.text())
+            
+            # Get book from service
+            book = self._book_service.get_book(book_id)
+            if not book:
+                QMessageBox.warning(self, "Открыть", f"Книга с ID {book_id} не найдена")
+                return
+            
+            # Open book card dialog
+            from ui.windows.book_card_widget import BookCardWidget
+            from PyQt5.QtWidgets import QDialog
+            
+            card_dialog = QDialog(self)
+            card_widget = BookCardWidget(
+                book_id=book_id,
+                book_service=self._book_service,
+                parent=card_dialog
+            )
+            
+            layout = card_dialog.layout() if card_dialog.layout() else None
+            if layout:
+                layout.addWidget(card_widget)
+            else:
+                from PyQt5.QtWidgets import QVBoxLayout
+                card_dialog.setLayout(QVBoxLayout())
+                card_dialog.layout().addWidget(card_widget)
+            
+            card_dialog.setWindowTitle(f"{book.title}")
+            card_dialog.resize(800, 600)
+            card_dialog.exec_()
+            
+            self.accept()
+            
+        except ValueError as e:
+            QMessageBox.warning(self, "Ошибка", f"Неверный ID книги: {e}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось открыть книгу: {e}")
+
+    def get_selected_book(self) -> Book | None:
+        """Get the selected book from results."""
         row = self.table_results.currentRow()
-        if row >= 0:
-            QMessageBox.information(self, "Открыть", f"Открыть книгу ID: {self.table_results.item(row, 0).text()}")
-        else:
-            QMessageBox.warning(self, "Открыть", "Выберите книгу из списка")
+        if 0 <= row < len(self._search_results):
+            return self._search_results[row]
+        return None

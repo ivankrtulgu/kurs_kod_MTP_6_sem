@@ -13,8 +13,8 @@ print("🔨 Компиляция UI файлов...")
 errors = []
 for ui_file in UI_DIR.glob("*.ui"):
     py_file = OUTPUT_DIR / f"ui_{ui_file.stem}.py"
-    print(f"  {ui_file.name} → {py_file.name}", end=" ... ")
-    
+    print(f"  {ui_file.name} -> {py_file.name}", end=" ... ")
+
     try:
         result = subprocess.run(
             ["pyuic5", "-x", str(ui_file), "-o", str(py_file)],
@@ -22,17 +22,17 @@ for ui_file in UI_DIR.glob("*.ui"):
             text=True,
             check=True
         )
-        print("✅")
+        print("OK")
     except subprocess.CalledProcessError as e:
-        print("❌")
+        print("ERROR")
         errors.append((ui_file.name, e.stderr))
         print(f"   Ошибка: {e.stderr[:200]}...")
 
 if errors:
-    print(f"\n⚠️ Не скомпилировано файлов: {len(errors)}")
+    print(f"\nНе скомпилировано файлов: {len(errors)}")
     for name, err in errors:
-        print(f"  • {name}")
-    print("\n💡 Попробуй открыть проблемный .ui файл в Qt Designer и пересохранить")
+        print(f"  - {name}")
+    print("\nПопробуй открыть проблемный .ui файл в Qt Designer и пересохранить")
     sys.exit(1)
 else:
-    print("\n✅ Все файлы скомпилированы успешно!")
+    print("\nВсе файлы скомпилированы успешно!")
