@@ -2,6 +2,7 @@
 """Book list widget with repository integration."""
 
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox
+from PyQt5.QtCore import pyqtSignal
 from ui.generated.ui_book_list_widget import Ui_BookListWidget
 
 from core.services.book_service import BookService
@@ -11,6 +12,9 @@ from core.models.book import Book
 class BookListWidget(QWidget, Ui_BookListWidget):
     """Виджет списка книг с интеграцией репозитория."""
 
+    # Signal to notify parent when window should be closed
+    close_requested = pyqtSignal()
+
     def __init__(
         self,
         parent=None,
@@ -18,14 +22,15 @@ class BookListWidget(QWidget, Ui_BookListWidget):
     ):
         super().__init__(parent)
         self.setupUi(self)
-        
+
         # Inject service
         self._book_service = book_service or BookService()
-        
+
         # Store all books and filtered results
         self._all_books: list[Book] = []
         self._filtered_books: list[Book] = []
-        
+
+        # Remove the actions column - it's not needed
         self._connect_signals()
         self._setup_table()
         self._load_books()
@@ -110,46 +115,33 @@ class BookListWidget(QWidget, Ui_BookListWidget):
             if row < 0:
                 QMessageBox.warning(self, "Открыть", "Выберите книгу из списка")
                 return
-            
+
             # Get book ID from table
             book_id_item = self.table_books.item(row, 0)
             if not book_id_item:
                 QMessageBox.warning(self, "Открыть", "Не удалось получить ID книги")
                 return
-            
+
             book_id = int(book_id_item.text())
-            
-            # Open book card in a new subwindow
-            from PyQt5.QtWidgets import QMdiSubWindow
-            from ui.windows.book_card_widget import BookCardWidget
-            
-            # Find parent MDI area
+
+            # Find parent main window and open book card
             parent_window = self.window()
-            if hasattr(parent_window, 'mdi_area'):
-                sub_window = QMdiSubWindow()
-                widget = BookCardWidget(
-                    book_id=book_id,
-                    book_service=self._book_service,
-                    parent=sub_window
-                )
-                sub_window.setWidget(widget)
-                sub_window.setWindowTitle(f"{widget.get_book_title()}")
-                parent_window.mdi_area.addSubWindow(sub_window)
-                sub_window.show()
+            if hasattr(parent_window, '_open_book_card'):
+                parent_window._open_book_card(book_id)
             else:
-                # Fallback: open in dialog
-                from PyQt5.QtWidgets import QDialog, QVBoxLayout
-                dialog = QDialog(self)
-                dialog.setLayout(QVBoxLayout())
-                widget = BookCardWidget(
-                    book_id=book_id,
-                    book_service=self._book_service,
-                    parent=dialog
-                )
-                dialog.layout().addWidget(widget)
-                dialog.resize(800, 600)
-                dialog.exec_()
-                
+                # Fallback: try to find mdi_area
+                if hasattr(parent_window, 'mdi_area'):
+                    sub_window = QMdiSubWindow()
+                    widget = BookCardWidget(
+                        book_id=book_id,
+                        book_service=self._book_service,
+                        parent=sub_window
+                    )
+                    sub_window.setWidget(widget)
+                    sub_window.setWindowTitle(f"{widget.get_book_title()}")
+                    parent_window.mdi_area.addSubWindow(sub_window)
+                    sub_window.show()
+
         except ValueError as e:
             QMessageBox.warning(self, "Ошибка", f"Неверный ID книги: {e}")
         except Exception as e:
@@ -165,3 +157,9 @@ class BookListWidget(QWidget, Ui_BookListWidget):
     def refresh(self):
         """Refresh book list from repository."""
         self._load_books()
+
+    def closeEvent(self, event):
+        """Handle window close event."""
+        # Accept the close event - the widget will be deleted
+        # because of WA_DeleteOnClose attribute set on subwindow
+        event.accept()

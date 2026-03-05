@@ -26,7 +26,7 @@
      <item>
       <widget class="QLabel" name="label_icon">
        <property name="text">
-        <string>📷</string>
+        <string></string>
        </property>
        <property name="font">
         <font>

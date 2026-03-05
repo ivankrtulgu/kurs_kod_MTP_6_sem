@@ -1,19 +1,17 @@
-# ui/windows/ocr_dialog.py
-"""OCR dialog with OcrImageWidget integration."""
+# ui/windows/ocr_widget.py
+"""OCR widget - for MDI child window."""
 
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QPushButton, QMessageBox, QHBoxLayout, QLabel, QProgressBar
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QMessageBox, QHBoxLayout, QLabel, QFileDialog
 from PyQt5.QtCore import pyqtSignal
 from ui.widgets.ocr_image_widget import OcrImageWidget
 from PyQt5.QtCore import QRect
 
 
-class OcrDialog(QDialog):
-    """
-    Диалог OCR с интеграцией OcrImageWidget.
+class OcrWidget(QWidget):
+    """Виджет OCR распознавания (для MDI)."""
 
-    Provides OCR recognition for book fields using region selection.
-    Returns recognized data to caller.
-    """
+    # Signal when OCR data is ready
+    ocr_data_ready = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -28,7 +26,7 @@ class OcrDialog(QDialog):
         self._connect_signals()
 
     def _setup_ui(self):
-        """Setup dialog UI."""
+        """Setup widget UI."""
         layout = QVBoxLayout(self)
 
         # Info label
@@ -43,11 +41,6 @@ class OcrDialog(QDialog):
         # Кастомный виджет изображения
         self.image_widget = OcrImageWidget()
         layout.addWidget(self.image_widget)
-
-        # Progress bar for OCR
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        layout.addWidget(self.progress_bar)
 
         # Status label
         self.status_label = QLabel("Готов к работе")
@@ -70,11 +63,11 @@ class OcrDialog(QDialog):
         self.btn_retry.setEnabled(False)
         btn_layout.addWidget(self.btn_retry)
 
-        self.btn_cancel = QPushButton("Отмена")
-        self.btn_cancel.setMinimumHeight(40)
-        btn_layout.addWidget(self.btn_cancel)
+        self.btn_close = QPushButton("Закрыть")
+        self.btn_close.setMinimumHeight(40)
+        btn_layout.addWidget(self.btn_close)
 
-        self.btn_ok = QPushButton("Готово")
+        self.btn_ok = QPushButton("Применить данные")
         self.btn_ok.setMinimumHeight(40)
         self.btn_ok.setEnabled(False)
         btn_layout.addWidget(self.btn_ok)
@@ -86,16 +79,14 @@ class OcrDialog(QDialog):
         self.btn_load.clicked.connect(self._load_image)
         self.btn_ocr.clicked.connect(self._run_ocr)
         self.btn_retry.clicked.connect(self._retry_regions)
-        self.btn_cancel.clicked.connect(self.reject)
-        self.btn_ok.clicked.connect(self._on_accept)
+        self.btn_close.clicked.connect(self.close)
+        self.btn_ok.clicked.connect(self._on_apply)
 
         # Подключение сигнала выделения области
         self.image_widget.region_completed.connect(self._on_regions_completed)
 
     def _load_image(self):
         """Load image for OCR."""
-        from PyQt5.QtWidgets import QFileDialog
-
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Выберите изображение", "",
             "Images (*.png *.jpg *.jpeg);;All files (*)"
@@ -131,8 +122,6 @@ class OcrDialog(QDialog):
                 QMessageBox.warning(self, "OCR", "Сначала выделите области на изображении")
                 return
 
-            self.progress_bar.setVisible(True)
-            self.progress_bar.setMaximum(len(self.image_widget.regions))
             self.status_label.setText("Распознавание...")
 
             # Region names mapping
@@ -143,8 +132,6 @@ class OcrDialog(QDialog):
 
             # Process each region
             for i, region in enumerate(self.image_widget.regions):
-                self.progress_bar.setValue(i + 1)
-
                 # Get region image with applied adjustments
                 pixmap = self.image_widget.get_region_image(region.id, use_adjusted=True)
 
@@ -168,7 +155,6 @@ class OcrDialog(QDialog):
 
                     self.status_label.setText(f"Распознано: {region.name} -> {text[:50]}...")
 
-            self.progress_bar.setVisible(False)
             self.btn_ok.setEnabled(True)
 
             QMessageBox.information(
@@ -177,20 +163,10 @@ class OcrDialog(QDialog):
             )
 
         except Exception as e:
-            self.progress_bar.setVisible(False)
             QMessageBox.critical(self, "Ошибка OCR", f"Ошибка распознавания: {e}")
 
     def _post_process_text(self, text: str, field_name: str) -> str:
-        """
-        Post-process recognized text based on field type.
-
-        Args:
-            text: Raw recognized text.
-            field_name: Name of the field being processed.
-
-        Returns:
-            str: Cleaned text.
-        """
+        """Post-process recognized text based on field type."""
         if not text:
             return ""
 
@@ -199,30 +175,25 @@ class OcrDialog(QDialog):
 
         # Field-specific processing
         if field_name == 'year':
-            # Extract 4-digit year
             import re
             match = re.search(r'\b(19|20|21)\d{2}\b', text)
             if match:
                 return match.group()
-            # Try to extract any 4 digits
             match = re.search(r'\b\d{4}\b', text)
             if match:
                 return match.group()
 
         elif field_name == 'isbn':
-            # Clean ISBN: remove spaces, keep digits and hyphens
             import re
             text = re.sub(r'[^\d\-Xx]', '', text)
 
         elif field_name == 'udc':
-            # UDC format: numbers with dots
             import re
             match = re.search(r'[\d.]+', text)
             if match:
                 return match.group()
 
         elif field_name == 'bbk':
-            # BBK format: numbers with dots
             import re
             match = re.search(r'[\d.]+', text)
             if match:
@@ -230,31 +201,22 @@ class OcrDialog(QDialog):
 
         return text
 
-    def _on_accept(self):
-        """Accept dialog and return recognized data."""
+    def _on_apply(self):
+        """Apply recognized data and close."""
         if not self._recognized_data:
             reply = QMessageBox.question(
                 self, "Подтверждение",
-                "Данные не распознаны. Всё равно завершить?",
+                "Данные не распознаны. Всё равно применить?",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )
             if reply != QMessageBox.Yes:
                 return
 
-        self.accept()
+        # Emit signal with recognized data
+        self.ocr_data_ready.emit(self._recognized_data)
+        self.close()
 
     def get_recognized_data(self) -> dict:
-        """
-        Get recognized data as dictionary.
-
-        Returns:
-            dict: Recognized field values with keys:
-                  author, title, publisher, year, isbn, udc, bbk, pages
-        """
+        """Get recognized data."""
         return self._recognized_data.copy()
-
-    def closeEvent(self, event):
-        """Cleanup on close."""
-        self.image_widget.closeEvent(event)
-        super().closeEvent(event)

@@ -302,6 +302,65 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="label_abstract">
+         <property name="text">
+          <string>Реферат:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextEdit" name="text_abstract">
+         <property name="objectName">
+          <string>text_abstract</string>
+         </property>
+         <property name="maximumHeight">
+          <number>80</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_content_type">
+         <item>
+          <widget class="QLabel" name="label_content_type">
+           <property name="text">
+            <string>Вид содержания:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="input_content_type">
+           <property name="objectName">
+            <string>input_content_type</string>
+           </property>
+           <property name="text">
+            <string>Текст</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_access_method">
+         <item>
+          <widget class="QLabel" name="label_access_method">
+           <property name="text">
+            <string>Средство доступа:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="input_access_method">
+           <property name="objectName">
+            <string>input_access_method</string>
+           </property>
+           <property name="text">
+            <string>непосредственный</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_cover">
          <item>
           <widget class="QLabel" name="label_cover">
@@ -358,22 +417,9 @@
      </property>
     </widget>
    </item>
-   
+
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>button_box</sender>
-   <signal>accepted()</signal>
-   <receiver>AddBookDialog</receiver>
-   <slot>accept()</slot>
-  </connection>
-  <connection>
-   <sender>button_box</sender>
-   <signal>rejected()</signal>
-   <receiver>AddBookDialog</receiver>
-   <slot>reject()</slot>
-  </connection>
- </connections>
+ <connections/>
 </ui>

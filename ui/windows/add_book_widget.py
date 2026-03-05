@@ -1,16 +1,16 @@
-# ui/windows/add_book_dialog.py
-"""Add book dialog with validation and service integration."""
+# ui/windows/add_book_widget.py
+"""Add book widget for MDI - Professional implementation."""
 
-from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog
+from PyQt5.QtWidgets import QWidget, QMessageBox, QFileDialog
 from ui.generated.ui_add_book_dialog import Ui_AddBookDialog
 
 from core.models.book import Book
 from core.services.book_service import BookService, ValidationError
-from ui.windows.ocr_dialog import OcrDialog
+from ui.windows.ocr_widget import OcrWidget
 
 
-class AddBookDialog(QDialog, Ui_AddBookDialog):
-    """Диалог добавления книги с валидацией и интеграцией сервиса."""
+class AddBookWidget(QWidget, Ui_AddBookDialog):
+    """Виджет добавления книги с валидацией и интеграцией сервиса (для MDI)."""
 
     def __init__(
         self,
@@ -20,17 +20,17 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
     ):
         super().__init__(parent)
         self.setupUi(self)
-        
+
         # Inject service
         self._book_service = book_service or BookService()
         self._ocr_data = ocr_data or {}
-        
+
         # Connect button box signals
         self.button_box.accepted.connect(self._on_save)
-        self.button_box.rejected.connect(self.reject)
-        
+        self.button_box.rejected.connect(self._on_cancel)
+
         self._connect_signals()
-        
+
         # Pre-fill with OCR data if available
         if self._ocr_data:
             self._fill_from_ocr()
@@ -113,19 +113,53 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         return True, ""
 
     def _on_ocr(self):
-        """Open OCR dialog and populate fields with recognized text."""
+        """Open OCR widget and populate fields with recognized text."""
         try:
-            dialog = OcrDialog(parent=self)
-            if dialog.exec_() == OcrDialog.Accepted:
-                ocr_data = dialog.get_recognized_data()
-                if ocr_data:
-                    self._fill_from_ocr()
-                    QMessageBox.information(
-                        self, "OCR",
-                        "Данные успешно распознаны и заполнены в форму"
-                    )
+            # Find parent main window and open OCR as MDI child
+            parent_window = self.window()
+            if hasattr(parent_window, 'mdi_area'):
+                # Open OCR in the main MDI area
+                ocr_widget = OcrWidget()
+                
+                from PyQt5.QtWidgets import QMdiSubWindow
+                from PyQt5.QtCore import Qt
+                
+                sub_window = QMdiSubWindow()
+                sub_window.setWidget(ocr_widget)
+                sub_window.setWindowTitle("OCR для добавления книги")
+                sub_window.setAttribute(Qt.WA_DeleteOnClose)
+                sub_window.resize(1000, 750)
+                
+                parent_window.mdi_area.addSubWindow(sub_window)
+                sub_window.show()
+                
+                # Connect OCR data signal to fill form
+                ocr_widget.ocr_data_ready.connect(self._fill_from_ocr_data)
+                
+            else:
+                # Fallback: use embedded OCR
+                QMessageBox.information(self, "OCR", "Откройте главное окно для полноценного OCR")
+                
         except Exception as e:
             QMessageBox.critical(self, "Ошибка OCR", f"Ошибка распознавания: {e}")
+
+    def _fill_from_ocr_data(self, ocr_data: dict):
+        """Fill form with OCR data and activate this window."""
+        self._ocr_data = ocr_data
+        self._fill_from_ocr()
+        
+        # Activate this window
+        parent = self.parent()
+        if parent:
+            from PyQt5.QtWidgets import QMdiSubWindow
+            if isinstance(parent, QMdiSubWindow):
+                parent.showNormal()
+                parent.activateWindow()
+        
+        QMessageBox.information(
+            self, "OCR",
+            "Данные успешно распознаны и заполнены в форму"
+        )
 
     def _on_select_cover(self):
         """Select cover image file."""
@@ -149,7 +183,7 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
             is_valid, error_msg = self._validate_inputs()
             if not is_valid:
                 QMessageBox.warning(self, "Ошибка валидации", error_msg)
-                return  # Don't close dialog, let user fix errors
+                return  # Don't close widget, let user fix errors
 
             # Create Book object from form data
             book = Book(
@@ -184,11 +218,73 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
                 self, "Успешно",
                 f"Книга '{book.title}' успешно добавлена с ID: {book_id}"
             )
-            self.accept()  # Close dialog only on success
+            
+            # Clear form for next entry
+            self._clear_form()
 
         except ValidationError as e:
             QMessageBox.warning(self, "Ошибка валидации", str(e))
-            # Don't close dialog, let user fix validation errors
+            # Don't close widget, let user fix validation errors
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить книгу: {e}")
-            # Don't close dialog on error
+            # Don't close widget on error
+
+    def _on_cancel(self):
+        """Handle cancel button - close the widget."""
+        # Check if form has data
+        if self._has_data():
+            reply = QMessageBox.question(
+                self, "Подтверждение",
+                "В форме есть незавершённые данные. Закрыть?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if reply != QMessageBox.Yes:
+                return
+        
+        # Close parent subwindow if exists
+        from PyQt5.QtWidgets import QMdiSubWindow
+        parent = self.parent()
+        if isinstance(parent, QMdiSubWindow):
+            parent.close()
+        else:
+            self.close()
+
+    def _clear_form(self):
+        """Clear all form fields for next entry."""
+        self.input_author.clear()
+        self.input_title.clear()
+        self.input_subtitle.clear()
+        self.input_responsibility.clear()
+        self.input_edition.clear()
+        self.input_place.clear()
+        self.input_publisher.clear()
+        self.input_year.setValue(2024)
+        self.input_pages.setValue(1)
+        self.input_isbn.clear()
+        self.input_copyright.clear()
+        self.input_udc.clear()
+        self.input_bbk.clear()
+        self.input_author_mark.clear()
+        self.text_reviewers.clear()
+        self.text_annotation.clear()
+        self.text_abstract.clear()
+        self.input_doi.clear()
+        self.input_content_type.setText("Текст")
+        self.input_access_method.setText("непосредственный")
+        self.input_cover_path.clear()
+        self._ocr_data = {}
+
+    def _has_data(self) -> bool:
+        """Check if form has any data entered."""
+        if self.input_author.text().strip():
+            return True
+        if self.input_title.text().strip():
+            return True
+        if self.input_isbn.text().strip():
+            return True
+        if self.input_publisher.text().strip():
+            return True
+        if self.input_place.text().strip():
+            return True
+        return False

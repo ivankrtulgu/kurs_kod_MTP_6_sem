@@ -8,7 +8,7 @@ OUTPUT_DIR = Path("ui/generated")
 
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-print("🔨 Компиляция UI файлов...")
+print("Compiling UI files...")
 
 errors = []
 for ui_file in UI_DIR.glob("*.ui"):
@@ -26,13 +26,13 @@ for ui_file in UI_DIR.glob("*.ui"):
     except subprocess.CalledProcessError as e:
         print("ERROR")
         errors.append((ui_file.name, e.stderr))
-        print(f"   Ошибка: {e.stderr[:200]}...")
+        print(f"   Error: {e.stderr[:200]}...")
 
 if errors:
-    print(f"\nНе скомпилировано файлов: {len(errors)}")
+    print(f"\nFiles failed to compile: {len(errors)}")
     for name, err in errors:
         print(f"  - {name}")
-    print("\nПопробуй открыть проблемный .ui файл в Qt Designer и пересохранить")
+    print("\nTry opening the problematic .ui file in Qt Designer and resave")
     sys.exit(1)
 else:
-    print("\nВсе файлы скомпилированы успешно!")
+    print("\nAll files compiled successfully!")

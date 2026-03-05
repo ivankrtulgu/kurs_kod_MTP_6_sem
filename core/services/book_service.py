@@ -190,6 +190,12 @@ class BookService:
         """
         Validate book data before saving.
 
+        Validates according to GOST R 7.0.4-2020:
+        - Required fields: author, title, place, publisher, year, pages, isbn
+        - Year must be between 1900 and 2100
+        - Pages must be greater than 0
+        - ISBN must be valid (ISBN-10 or ISBN-13)
+
         Args:
             book: Book object to validate.
 
@@ -206,15 +212,15 @@ class BookService:
         if not book.title or not book.title.strip():
             errors.append("Title is required")
 
-        # Validate year (1900-2100)
-        if not (1900 <= book.year <= 2100):
+        # Validate year (1900-2100) - also validated in Model.__post_init__()
+        if not isinstance(book.year, int) or not (1900 <= book.year <= 2100):
             errors.append(f"Year must be between 1900 and 2100, got {book.year}")
 
-        # Validate pages (> 0)
-        if book.pages <= 0:
+        # Validate pages (> 0) - also validated in Model.__post_init__()
+        if not isinstance(book.pages, int) or book.pages <= 0:
             errors.append(f"Pages must be greater than 0, got {book.pages}")
 
-        # Validate ISBN (format and check digit)
+        # Validate ISBN (format and check digit) - also validated in Model.__post_init__()
         if not book.isbn or not book.isbn.strip():
             errors.append("ISBN is required")
         else:
@@ -222,11 +228,11 @@ class BookService:
             if not is_valid:
                 errors.append(f"Invalid ISBN: {error}")
 
-        # Validate place (non-empty)
+        # Validate place
         if not book.place or not book.place.strip():
             errors.append("Place of publication is required")
 
-        # Validate publisher (non-empty)
+        # Validate publisher
         if not book.publisher or not book.publisher.strip():
             errors.append("Publisher is required")
 

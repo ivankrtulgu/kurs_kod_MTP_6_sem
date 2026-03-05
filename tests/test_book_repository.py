@@ -50,25 +50,27 @@ def repository(db_manager, test_db_path):
 
 @pytest.fixture
 def sample_book():
-    """Create sample book for testing."""
+    """Create sample book for testing with required fields per GOST R 7.0.4-2020."""
     return Book(
         author="Иванов И.И.",
         title="Основы программирования",
-        subtitle="Учебное пособие",
-        responsibility="Под ред. Петрова П.П.",
-        edition="2-е изд., перераб. и доп.",
         place="Москва",
         publisher="Наука",
         year=2024,
         pages=350,
-        isbn="978-5-02-040500-0",
+        isbn="978-5-699-12345-2",
+        # Optional fields
+        subtitle="Учебное пособие",
+        responsibility="Под ред. Петрова П.П.",
+        edition="2-е изд., перераб. и доп.",
         copyright="© Иванов И.И., 2024",
         udc="004.43",
         bbk="32.973",
         author_mark="И12",
+        # Additional fields
         reviewers="Рецензент: Сидоров С.С.",
         annotation="Аннотация к книге",
-        abstract="",
+        abstract="Краткое содержание",
         doi="",
         content_type="Текст",
         access_method="непосредственный",
@@ -77,19 +79,19 @@ def sample_book():
 
 @pytest.fixture
 def multiple_books():
-    """Create multiple sample books."""
+    """Create multiple sample books with required fields per GOST R 7.0.4-2020."""
     return [
         Book(
             author="Иванов И.И.",
             title="Python для начинающих",
-            subtitle="",
-            responsibility="",
-            edition="",
             place="Москва",
             publisher="Питер",
             year=2023,
             pages=256,
-            isbn="978-5-4461-0001-1",
+            isbn="978-5-4461-0001-9",  # Corrected check digit
+            subtitle="",
+            responsibility="",
+            edition="",
             copyright="© Иванов, 2023",
             udc="004.43",
             bbk="32.973",
@@ -98,14 +100,14 @@ def multiple_books():
         Book(
             author="Петров П.П.",
             title="Базы данных",
-            subtitle="Учебник",
-            responsibility="",
-            edition="3-е изд.",
             place="Санкт-Петербург",
             publisher="БХВ-Петербург",
             year=2022,
             pages=400,
-            isbn="978-5-9775-0002-2",
+            isbn="978-5-9775-0002-9",  # Corrected check digit
+            subtitle="Учебник",
+            responsibility="",
+            edition="3-е изд.",
             copyright="© Петров, 2022",
             udc="004.65",
             bbk="32.973.26",
@@ -114,14 +116,14 @@ def multiple_books():
         Book(
             author="Сидоров С.С.",
             title="Веб-разработка",
-            subtitle="",
-            responsibility="",
-            edition="",
             place="Москва",
             publisher="ДМК Пресс",
             year=2024,
             pages=300,
-            isbn="978-5-9706-0003-3",
+            isbn="978-5-9706-0003-0",  # Corrected check digit
+            subtitle="",
+            responsibility="",
+            edition="",
             copyright="© Сидоров, 2024",
             udc="004.774",
             bbk="32.973.2",
@@ -510,12 +512,12 @@ class TestEdgeCases:
     def test_isbn_formats(self, repository, sample_book):
         """Test different ISBN formats."""
         isbn_formats = [
-            "978-5-02-040500-0",
-            "9785020405000",
-            "5-02-040500-0",
-            "978-5-9775-0002-2",
+            "978-5-699-12345-2",  # Valid ISBN-13
+            "9785699123452",      # Valid ISBN-13 without hyphens
+            "0-8044-2957-X",      # Valid ISBN-10 with X
+            "978-5-9775-0002-9",  # Valid ISBN-13
         ]
-        
+
         for i, isbn in enumerate(isbn_formats):
             sample_book.id = 0
             sample_book.isbn = isbn

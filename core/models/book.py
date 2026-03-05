@@ -3,11 +3,17 @@ Book model module.
 
 Provides the Book dataclass for representing bibliographic records
 according to GOST R 7.0.4-2020 standard.
+
+GOST R 7.0.4-2020 defines:
+- Required fields: author, title, place, publisher, year, pages, isbn
+- Optional fields: subtitle, responsibility, edition, copyright, udc, bbk, author_mark
+- Additional fields: reviewers, annotation, abstract, doi, content_type, access_method
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
+import re
 
 
 @dataclass
@@ -23,14 +29,16 @@ class Book:
         Required fields (per GOST R 7.0.4-2020):
             author: Author name(s) in format "Фамилия И.О."
             title: Main title of the work
+            place: Place of publication (city)
+            publisher: Publisher name
+            year: Publication year (1900-2100)
+            pages: Number of pages (> 0)
+            isbn: ISBN number (ISBN-10 or ISBN-13)
+
+        Optional fields (per GOST R 7.0.4-2020):
             subtitle: Subtitle info (учебник, справочник и др.)
             responsibility: Responsibility info (editors, organizations)
             edition: Edition info (2-е изд., перераб. и доп.)
-            place: Place of publication (city)
-            publisher: Publisher name
-            year: Publication year
-            pages: Number of pages
-            isbn: ISBN number
             copyright: Copyright mark
             udc: UDC index (УДК)
             bbk: BBK index (ББК)
@@ -54,7 +62,6 @@ class Book:
         >>> book = Book(
         ...     author="Иванов И.И.",
         ...     title="Основы программирования",
-        ...     subtitle="Учебное пособие",
         ...     place="Москва",
         ...     publisher="Наука",
         ...     year=2024,
@@ -67,18 +74,20 @@ class Book:
     # Required fields (per GOST R 7.0.4-2020)
     author: str
     title: str
-    subtitle: str
-    responsibility: str
-    edition: str
     place: str
     publisher: str
     year: int
     pages: int
     isbn: str
-    copyright: str
-    udc: str
-    bbk: str
-    author_mark: str
+
+    # Optional fields (per GOST R 7.0.4-2020)
+    subtitle: str = ""
+    responsibility: str = ""
+    edition: str = ""
+    copyright: str = ""
+    udc: str = ""
+    bbk: str = ""
+    author_mark: str = ""
 
     # Additional fields
     reviewers: str = ""
@@ -266,23 +275,45 @@ class Book:
         """
         Validate required fields after initialization.
 
+        Validates according to GOST R 7.0.4-2020:
+        - Required fields must be non-empty
+        - Year must be between 1900 and 2100
+        - Pages must be greater than 0
+        - ISBN must be valid (ISBN-10 or ISBN-13)
+
         Raises:
-            ValueError: If any required field is empty.
+            ValueError: If any required field is invalid.
         """
-        required_fields = [
-            "author", "title", "place", "publisher",
-            "year", "pages", "isbn"
-        ]
+        # Import ISBNValidator here to avoid circular import
+        from core.services.book_service import ISBNValidator
+
+        errors: list[str] = []
+
+        # Validate required fields are non-empty
+        required_fields = ["author", "title", "place", "publisher", "isbn"]
 
         for field_name in required_fields:
             value = getattr(self, field_name)
-            if not value:
-                raise ValueError(
-                    f"Required field '{field_name}' cannot be empty"
-                )
+            if not value or not str(value).strip():
+                errors.append(f"Required field '{field_name}' cannot be empty")
 
-        if self.year <= 0:
-            raise ValueError("Year must be a positive integer")
+        # Validate year (1900-2100 per GOST R 7.0.4-2020)
+        if not isinstance(self.year, int):
+            errors.append(f"Year must be an integer, got {type(self.year).__name__}")
+        elif not (1900 <= self.year <= 2100):
+            errors.append(f"Year must be between 1900 and 2100, got {self.year}")
 
-        if self.pages <= 0:
-            raise ValueError("Pages must be a positive integer")
+        # Validate pages (> 0)
+        if not isinstance(self.pages, int):
+            errors.append(f"Pages must be an integer, got {type(self.pages).__name__}")
+        elif self.pages <= 0:
+            errors.append(f"Pages must be greater than 0, got {self.pages}")
+
+        # Validate ISBN format and check digit
+        if self.isbn and str(self.isbn).strip():
+            is_valid, error = ISBNValidator.validate(str(self.isbn))
+            if not is_valid:
+                errors.append(f"Invalid ISBN: {error}")
+
+        if errors:
+            raise ValueError("; ".join(errors))
