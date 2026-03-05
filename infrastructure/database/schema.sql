@@ -11,23 +11,23 @@ CREATE TABLE IF NOT EXISTS books (
     -- System fields
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- Required fields (per GOST R 7.0.4-2020)
     author TEXT NOT NULL,
     title TEXT NOT NULL,
-    subtitle TEXT NOT NULL,
-    responsibility TEXT NOT NULL,
-    edition TEXT NOT NULL,
+    subtitle TEXT DEFAULT '',
+    responsibility TEXT DEFAULT '',
+    edition TEXT DEFAULT '',
     place TEXT NOT NULL,
     publisher TEXT NOT NULL,
     year INTEGER NOT NULL,
     pages INTEGER NOT NULL,
     isbn TEXT NOT NULL,
-    copyright TEXT NOT NULL,
-    udc TEXT NOT NULL,
-    bbk TEXT NOT NULL,
-    author_mark TEXT NOT NULL,
-    
+    copyright TEXT DEFAULT '',
+    udc TEXT DEFAULT '',
+    bbk TEXT DEFAULT '',
+    author_mark TEXT DEFAULT '',
+
     -- Additional fields
     reviewers TEXT DEFAULT '',
     annotation TEXT DEFAULT '',
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS books (
     doi TEXT DEFAULT '',
     content_type TEXT DEFAULT 'Текст',
     access_method TEXT DEFAULT 'непосредственный',
-    
+
     -- File paths
     qr_code_path TEXT DEFAULT '',
     cover_image_path TEXT DEFAULT ''

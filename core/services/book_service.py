@@ -6,6 +6,7 @@ and file path management.
 """
 
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -19,6 +20,129 @@ from infrastructure.database.book_repository import SQLiteBookRepository
 from infrastructure.database.connection import DatabaseManager
 
 logger = logging.getLogger(__name__)
+
+
+class ISBNValidator:
+    """
+    ISBN-10 and ISBN-13 validation with check digit verification.
+    
+    Supports:
+    - ISBN-10: 10 digits with check digit (0-10, where 10 = X)
+    - ISBN-13: 13 digits starting with 978 or 979
+    
+    Examples:
+        >>> ISBNValidator.validate("978-5-02-040500-0")
+        (True, None)
+        >>> ISBNValidator.validate("2-266-11156-6")
+        (True, None)
+        >>> ISBNValidator.validate("invalid-isbn")
+        (False, "Invalid ISBN format")
+    """
+    
+    @staticmethod
+    def validate(isbn: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate ISBN format and check digit.
+        
+        Args:
+            isbn: ISBN string (with or without hyphens).
+            
+        Returns:
+            tuple[bool, str | None]: (is_valid, error_message)
+        """
+        if not isbn:
+            return False, "ISBN is required"
+        
+        # Remove hyphens and spaces
+        clean_isbn = re.sub(r'[-\s]', '', isbn)
+        
+        # Determine ISBN type
+        if len(clean_isbn) == 10:
+            return ISBNValidator._validate_isbn10(clean_isbn.upper())  # Normalize X to uppercase
+        elif len(clean_isbn) == 13:
+            return ISBNValidator._validate_isbn13(clean_isbn)
+        else:
+            return False, f"ISBN must be 10 or 13 digits, got {len(clean_isbn)}"
+    
+    @staticmethod
+    def _validate_isbn10(isbn: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate ISBN-10 format and check digit.
+        
+        Check digit calculation:
+        - Multiply each digit by weights 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+        - Sum must be divisible by 11
+        - Check digit can be 0-9 or X (for 10)
+        
+        Args:
+            isbn: 10-character ISBN string.
+            
+        Returns:
+            tuple[bool, str | None]: (is_valid, error_message)
+        """
+        # Check format: 9 digits + (digit or X)
+        pattern = r'^[0-9]{9}[0-9X]$'
+        if not re.match(pattern, isbn, re.IGNORECASE):
+            return False, "ISBN-10 must be 9 digits followed by digit or X"
+        
+        # Convert to list of values (X = 10)
+        digits = []
+        for i, char in enumerate(isbn):
+            if char.upper() == 'X':
+                digits.append(10)
+            else:
+                digits.append(int(char))
+        
+        # Calculate weighted sum
+        weights = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+        total = sum(d * w for d, w in zip(digits, weights))
+        
+        # Check if divisible by 11
+        if total % 11 != 0:
+            expected_check = (11 - (sum(d * w for d, w in zip(digits[:9], weights[:9])) % 11)) % 11
+            return False, f"Invalid ISBN-10 check digit. Expected {expected_check}, got {digits[9]}"
+        
+        return True, None
+    
+    @staticmethod
+    def _validate_isbn13(isbn: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate ISBN-13 format and check digit.
+        
+        Check digit calculation:
+        - Multiply digits alternately by 1 and 3
+        - Sum must be divisible by 10
+        - Must start with 978 or 979
+        
+        Args:
+            isbn: 13-character ISBN string.
+            
+        Returns:
+            tuple[bool, str | None]: (is_valid, error_message)
+        """
+        # Check format: 13 digits
+        if not isbn.isdigit():
+            return False, "ISBN-13 must contain only digits"
+        
+        # Check prefix
+        if not isbn.startswith(('978', '979')):
+            return False, "ISBN-13 must start with 978 or 979"
+        
+        # Convert to list of integers
+        digits = [int(d) for d in isbn]
+        
+        # Calculate weighted sum (alternate 1, 3)
+        weights = [1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
+        total = sum(d * w for d, w in zip(digits, weights))
+        
+        # Check if divisible by 10
+        if total % 10 != 0:
+            # Calculate expected check digit
+            sum_without_check = sum(d * w for d, w in zip(digits[:12], weights[:12]))
+            expected_check = (10 - (sum_without_check % 10)) % 10
+            return False, f"Invalid ISBN-13 check digit. Expected {expected_check}, got {digits[12]}"
+        
+        return True, None
 
 
 class BookServiceError(Exception):
@@ -90,9 +214,13 @@ class BookService:
         if book.pages <= 0:
             errors.append(f"Pages must be greater than 0, got {book.pages}")
 
-        # Validate ISBN (non-empty)
+        # Validate ISBN (format and check digit)
         if not book.isbn or not book.isbn.strip():
             errors.append("ISBN is required")
+        else:
+            is_valid, error = ISBNValidator.validate(book.isbn)
+            if not is_valid:
+                errors.append(f"Invalid ISBN: {error}")
 
         # Validate place (non-empty)
         if not book.place or not book.place.strip():

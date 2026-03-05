@@ -11,7 +11,7 @@ from infrastructure.database.connection import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
-CURRENT_VERSION = 1
+CURRENT_VERSION = 2
 
 
 def create_schema_versions_table(conn: sqlite3.Connection) -> None:
