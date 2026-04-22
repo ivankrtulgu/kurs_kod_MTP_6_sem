@@ -16,7 +16,7 @@ def view_database(db_path: Path | None = None) -> None:
         db_path = DB_PATH
     
     if not db_path.exists():
-        print(f"✗ База данных не найдена: {db_path}")
+        print(f"База данных не найдена: {db_path}")
         print("  Сначала выполните: python init_db.py")
         return
     
