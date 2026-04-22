@@ -1,13 +1,14 @@
 # ui/windows/book_list_widget.py
 """Book list widget with repository integration."""
 
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow
 from PyQt5.QtCore import pyqtSignal
 from ui.generated.ui_book_list_widget import Ui_BookListWidget
 
 from core.services.book_service import BookService
 from core.models.book import Book
-
+from ui.windows.book_card_widget import BookCardWidget
+from datetime import datetime
 
 class BookListWidget(QWidget, Ui_BookListWidget):
     """Виджет списка книг с интеграцией репозитория."""
@@ -48,10 +49,24 @@ class BookListWidget(QWidget, Ui_BookListWidget):
 
     def _setup_table(self):
         """Setup books table."""
-        self.table_books.setColumnCount(5)
-        self.table_books.setHorizontalHeaderLabels([
-            "ID", "Автор", "Название", "Год", "ISBN"
-        ])
+        ALL_BOOK_FIELDS = [
+            "id", "author", "title", "subtitle", "responsibility", "edition",
+            "place", "publisher", "year", "pages", "isbn", "copyright",
+            "udc", "bbk", "author_mark", "reviewers", "annotation",
+            "abstract", "doi", "content_type", "access_method",
+            "created_at", "qr_code_path", "cover_image_path"
+        ]
+        ALL_BOOK_HEADERS = [
+            "ID", "Автор", "Название", "Подзаголовок", "Ответственность", "Издание",
+            "Место", "Издатель", "Год", "Страницы", "ISBN", "Авторские права",
+            "УДК", "ББК", "Авторский знак", "Рецензенты", "Аннотация",
+            "Аннотация (англ.)", "DOI", "Тип контента", "Метод доступа",
+            "Создано", "Путь к QR", "Путь к обложке"
+        ]
+
+        self.table_books.setColumnCount(len(ALL_BOOK_FIELDS))
+        self.table_books.setHorizontalHeaderLabels(ALL_BOOK_HEADERS)
+        self._all_book_fields = ALL_BOOK_FIELDS # Store for _display_books
         self.table_books.horizontalHeader().setStretchLastSection(True)
         self.table_books.setSelectionBehavior(
             self.table_books.SelectRows
@@ -76,11 +91,13 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         self.table_books.setRowCount(len(books))
         
         for row, book in enumerate(books):
-            self.table_books.setItem(row, 0, QTableWidgetItem(str(book.id)))
-            self.table_books.setItem(row, 1, QTableWidgetItem(book.author))
-            self.table_books.setItem(row, 2, QTableWidgetItem(book.title))
-            self.table_books.setItem(row, 3, QTableWidgetItem(str(book.year)))
-            self.table_books.setItem(row, 4, QTableWidgetItem(book.isbn))
+            for col, field_name in enumerate(self._all_book_fields):
+                value = getattr(book, field_name)
+                if isinstance(value, datetime):
+                    item_text = value.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    item_text = str(value)
+                self.table_books.setItem(row, col, QTableWidgetItem(item_text))
         
         # Adjust column widths
         self.table_books.resizeColumnsToContents()
