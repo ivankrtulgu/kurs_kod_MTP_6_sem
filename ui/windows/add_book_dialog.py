@@ -16,7 +16,8 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         self,
         parent=None,
         book_service: BookService | None = None,
-        ocr_data: dict | None = None
+        ocr_data: dict | None = None,
+        book_id: int | None = None
     ):
         super().__init__(parent)
         self.setupUi(self)
@@ -24,6 +25,13 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         # Inject service
         self._book_service = book_service or BookService()
         self._ocr_data = ocr_data or {}
+        self._book_id = book_id  # Store book_id for edit mode
+        
+        # Set window title based on mode
+        if self._book_id:
+            self.setWindowTitle("Редактировать книгу")
+        else:
+            self.setWindowTitle("Добавить книгу")
         
         # Connect button box signals
         self.button_box.accepted.connect(self._on_save)
@@ -34,6 +42,10 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         # Pre-fill with OCR data if available
         if self._ocr_data:
             self._fill_from_ocr()
+            
+        # If in edit mode, load book data for pre-filling
+        if self._book_id:
+            self._load_book_for_edit()
 
     def _connect_signals(self):
         """Connect button signals."""
@@ -175,6 +187,38 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка выбора файла: {e}")
 
+    def _load_book_for_edit(self):
+        """Load book data for editing."""
+        try:
+            book = self._book_service.get_book(self._book_id)
+            if book:
+                self.input_author.setText(book.author)
+                self.input_title.setText(book.title)
+                self.input_subtitle.setText(book.subtitle or "")
+                self.input_responsibility.setText(book.responsibility or "")
+                self.input_edition.setText(book.edition or "")
+                self.input_place.setText(book.place)
+                self.input_publisher.setText(book.publisher)
+                self.input_year.setValue(book.year)
+                self.input_pages.setValue(book.pages)
+                self.input_isbn.setText(book.isbn)
+                self.input_copyright.setText(book.copyright or "")
+                self.input_udc.setText(book.udc or "")
+                self.input_bbk.setText(book.bbk or "")
+                self.input_author_mark.setText(book.author_mark or "")
+                self.text_reviewers.setPlainText(book.reviewers or "")
+                self.text_annotation.setPlainText(book.annotation or "")
+                self.text_abstract.setPlainText(book.abstract or "")
+                self.input_doi.setText(book.doi or "")
+                self.input_content_type.setText(book.content_type or "")
+                self.input_access_method.setText(book.access_method or "")
+                if book.cover_image_path:
+                    self.input_cover_path.setText(book.cover_image_path)
+            else:
+                QMessageBox.warning(self, "Ошибка", f"Книга с ID {self._book_id} не найдена")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить книгу для редактирования: {e}")
+
     def _on_save(self):
         """Validate and save book to repository."""
         try:
@@ -186,7 +230,7 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
 
             # Create Book object from form data
             book = Book(
-                id=0,  # Will be assigned by repository
+                id=self._book_id if self._book_id else 0,  # Use existing ID for edit mode
                 author=self.input_author.text().strip(),
                 title=self.input_title.text().strip(),
                 subtitle=self.input_subtitle.text().strip(),
@@ -211,13 +255,23 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
             )
 
             # Save via service
-            book_id = self._book_service.add_book(book)
-
-            QMessageBox.information(
-                self, "Успешно",
-                f"Книга '{book.title}' успешно добавлена с ID: {book_id}"
-            )
-            self.accept()  # Close dialog only on success
+            if self._book_id:  # Edit mode
+                success = self._book_service.update_book(book)
+                if success:
+                    QMessageBox.information(
+                        self, "Успешно",
+                        f"Книга '{book.title}' успешно обновлена"
+                    )
+                    self.accept()  # Close dialog only on success
+                else:
+                    QMessageBox.warning(self, "Ошибка", "Не удалось обновить книгу")
+            else:  # Add mode
+                book_id = self._book_service.add_book(book)
+                QMessageBox.information(
+                    self, "Успешно",
+                    f"Книга '{book.title}' успешно добавлена с ID: {book_id}"
+                )
+                self.accept()  # Close dialog only on success
 
         except ValidationError as e:
             QMessageBox.warning(self, "Ошибка валидации", str(e))

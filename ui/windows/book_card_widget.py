@@ -2,9 +2,10 @@
 """Book card widget with repository integration."""
 
 from PyQt5.QtWidgets import QWidget, QMessageBox, QFileDialog
+from PyQt5.QtCore import Qt
 from ui.generated.ui_book_card_widget import Ui_BookCardWidget
 
-from core.services.book_service import BookService, ValidationError
+from core.services.book_service import BookService
 from core.models.book import Book
 from ui.windows.add_book_dialog import AddBookDialog
 
@@ -65,6 +66,46 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
         self.label_udc_value.setText(book.udc or "—")
         self.label_bbk_value.setText(book.bbk or "—")
         
+        # Display cover image if available
+        if book.cover_image_path:
+            from PyQt5.QtGui import QPixmap, QImage
+            from pathlib import Path
+            cover_path = Path(book.cover_image_path)
+            if cover_path.exists() and cover_path.is_file():
+                try:
+                    from PIL import Image
+                    # Open image using Pillow to bypass Qt plugin issues (especially for JPG)
+                    with Image.open(cover_path) as img:
+                        img = img.convert("RGBA")
+                        data = img.tobytes("raw", "RGBA")
+                        
+                        # Create QImage from Pillow bytes
+                        qimg = QImage(data, img.size[0], img.size[1], QImage.Format_RGBA8888)
+                        pixmap = QPixmap.fromImage(qimg)
+                        
+                        # Scale pixmap to fit the label while maintaining aspect ratio
+                        label_size = self.label_cover.size()
+                        if not label_size.isEmpty():
+                            scaled_pixmap = pixmap.scaled(
+                                label_size,
+                                Qt.KeepAspectRatio,
+                                Qt.SmoothTransformation
+                            )
+                            self.label_cover.setPixmap(scaled_pixmap)
+                            self.label_cover.setText("")  # Clear placeholder text
+                        else:
+                            self.label_cover.setText("Ошибка размера\nвиджета")
+                except ImportError:
+                    print("Error: Pillow library not installed. Run 'pip install Pillow'")
+                    self.label_cover.setText("Установите\nPillow")
+                except Exception as e:
+                    print(f"Error loading image with Pillow: {e}")
+                    self.label_cover.setText("Ошибка загрузки\nфайла")
+            else:
+                self.label_cover.setText("Обложка\nне найдена")
+        else:
+            self.label_cover.setText("Нет обложки")
+        
         # Bibliographic record
         biblio = book.format_bibliographic_record()
         self.text_biblio_record.setPlainText(biblio)
@@ -101,36 +142,18 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
             if not self._book:
                 QMessageBox.warning(self, "Редактирование", "Книга не загружена")
                 return
-            
-            # Open add book dialog with current book data
-            dialog = AddBookDialog(book_service=self._book_service, parent=self)
-            
-            # Pre-fill with current book data
-            if self._book:
-                dialog.input_author.setText(self._book.author)
-                dialog.input_title.setText(self._book.title)
-                dialog.input_subtitle.setText(self._book.subtitle or "")
-                dialog.input_responsibility.setText(self._book.responsibility or "")
-                dialog.input_edition.setText(self._book.edition or "")
-                dialog.input_place.setText(self._book.place)
-                dialog.input_publisher.setText(self._book.publisher)
-                dialog.input_year.setValue(self._book.year)
-                dialog.input_pages.setValue(self._book.pages)
-                dialog.input_isbn.setText(self._book.isbn)
-                dialog.input_copyright.setText(self._book.copyright or "")
-                dialog.input_udc.setText(self._book.udc or "")
-                dialog.input_bbk.setText(self._book.bbk or "")
-                dialog.input_author_mark.setText(self._book.author_mark or "")
-                dialog.text_reviewers.setPlainText(self._book.reviewers or "")
-                dialog.text_annotation.setPlainText(self._book.annotation or "")
-                dialog.input_doi.setText(self._book.doi or "")
-                if self._book.cover_image_path:
-                    dialog.input_cover_path.setText(self._book.cover_image_path)
-            
+             
+            # Open add book dialog in edit mode with current book ID
+            dialog = AddBookDialog(
+                book_service=self._book_service, 
+                parent=self,
+                book_id=self._book.id
+            )
+             
             if dialog.exec_() == AddBookDialog.Accepted:
                 # Refresh book data
                 self._load_book(self._book_id)
-                
+                 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось открыть редактирование: {e}")
 
@@ -203,7 +226,6 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
             
             # Generate QR code using qrcode library
             import qrcode
-            from pathlib import Path
             from config.settings import settings
             
             settings.ensure_dirs()

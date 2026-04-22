@@ -274,6 +274,11 @@ class BookService:
         # Generate unique filename
         dest_path = resource_dir / source.name
 
+        # Check if source and destination are the same file
+        if source.resolve() == dest_path.resolve():
+            logger.info(f"File already exists in target location, skipping copy: {dest_path}")
+            return str(dest_path) # Return the existing path
+
         try:
             shutil.copy2(source, dest_path)
             logger.info(f"Copied {resource_type} to: {dest_path}")
