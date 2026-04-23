@@ -34,7 +34,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QMessageBox,
     QGroupBox, QTableWidget, QTableWidgetItem, QApplication,
-    QSlider, QScrollArea, QComboBox
+    QSlider, QScrollArea, QComboBox, QAbstractItemView
 )
 from PyQt5.QtCore import QRect, Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap, QImageReader, QImage
@@ -165,6 +165,21 @@ class OcrWindow(QWidget):
             QLabel {
                 color: #4a5568;
                 font-size: 13px;
+            }
+            QMenu {
+                background-color: #ffffff;
+                color: #2d3748;
+                border: 1px solid #e2e8f0;
+                padding: 4px;
+            }
+            QMenu::item {
+                padding: 8px 24px 8px 20px;
+                background-color: transparent;
+                color: #2d3748;
+            }
+            QMenu::item:selected {
+                background-color: #f0fff4;
+                color: #68a385;
             }
             QTableWidget {
                 background-color: #ffffff;
@@ -394,7 +409,7 @@ class OcrWindow(QWidget):
         self.label_status.setStyleSheet("color: #718096; font-style: italic;")
         status_layout.addWidget(self.label_status)
 
-        self.label_progress = QLabel("Области: 0/7")
+        self.label_progress = QLabel("Области: 0/9")
         self.label_progress.setStyleSheet("font-weight: 600; color: #68a385;")
         status_layout.addWidget(self.label_progress)
 
@@ -414,6 +429,8 @@ class OcrWindow(QWidget):
         self.table_regions.setHorizontalHeaderLabels(
             ["ID", "Область", "Размер", "Текст", "Статус"]
         )
+        self.table_regions.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        self.table_regions.itemChanged.connect(self._on_table_item_changed)
         self.table_regions.horizontalHeader().setStretchLastSection(True)
         self.table_regions.setColumnWidth(0, 45)
         self.table_regions.setColumnWidth(1, 100)
@@ -585,6 +602,7 @@ class OcrWindow(QWidget):
     
     def _update_table(self):
         """Обновить таблицу областей."""
+        self.table_regions.blockSignals(True) # Block signals to avoid recursion during update
         regions = self.image_widget.regions
         self.table_regions.setRowCount(len(regions))
         
@@ -595,9 +613,24 @@ class OcrWindow(QWidget):
                 QTableWidgetItem(f"{region.rect.width()}x{region.rect.height()}"))
             
             ocr_text = region.ocr_text if hasattr(region, 'ocr_text') else "-"
-            self.table_regions.setItem(i, 3, QTableWidgetItem(ocr_text[:30] + "..." if len(ocr_text) > 30 else ocr_text))
+            item_text = QTableWidgetItem(ocr_text[:30] + "..." if len(ocr_text) > 30 else ocr_text)
+            # Allow editing for the text column
+            item_text.setFlags(item_text.flags() | Qt.ItemIsEditable)
+            self.table_regions.setItem(i, 3, item_text)
             
             self.table_regions.setItem(i, 4, QTableWidgetItem(""))
+        self.table_regions.blockSignals(False)
+    
+    def _on_table_item_changed(self, item):
+        """Update OcrRegion data when table cell is edited."""
+        row = item.row()
+        col = item.column()
+        
+        if col == 3: # Text column
+            regions = self.image_widget.regions
+            if row < len(regions):
+                regions[row].ocr_text = item.text()
+                print(f" Updated region {regions[row].id} text: {item.text()}")
     
     def _run_ocr(self):
         """Запустить распознавание текста."""
@@ -700,6 +733,9 @@ class OcrWindow(QWidget):
             parent.close()
         else:
             self.close()
+        
+        # Дополнительное уведомление для уверенности в перенаправлении
+        print(" OCR data emitted, closing OCR window...")
 
     def _get_recognized_data(self) -> dict:
         """Получить распознанные данные для AddBookWidget."""
@@ -710,16 +746,20 @@ class OcrWindow(QWidget):
                     data['author'] = region.ocr_text
                 elif region.id == 1:  # Title
                     data['title'] = region.ocr_text
-                elif region.id == 2:  # Publisher
+                elif region.id == 2:  # Place
+                    data['place'] = region.ocr_text
+                elif region.id == 3:  # Publisher
                     data['publisher'] = region.ocr_text
-                elif region.id == 3:  # Year
+                elif region.id == 4:  # Year
                     data['year'] = region.ocr_text
-                elif region.id == 4:  # ISBN
+                elif region.id == 5:  # ISBN
                     data['isbn'] = region.ocr_text
-                elif region.id == 5:  # UDC
+                elif region.id == 6:  # UDC
                     data['udc'] = region.ocr_text
-                elif region.id == 6:  # BBK
+                elif region.id == 7:  # BBK
                     data['bbk'] = region.ocr_text
+                elif region.id == 8:  # Annotation
+                    data['annotation'] = region.ocr_text
         return data
 
 

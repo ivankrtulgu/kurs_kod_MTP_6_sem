@@ -13,11 +13,13 @@ class OcrRegion:
     COLORS = [
         (QColor(255, 0, 0), "Автор"),
         (QColor(0, 255, 0), "Название"),
+        (QColor(0, 255, 255), "Место издания"),
         (QColor(0, 0, 255), "Издательство"),
         (QColor(255, 255, 0), "Год"),
         (QColor(255, 0, 255), "ISBN"),
         (QColor(0, 255, 255), "УДК"),
         (QColor(255, 165, 0), "ББК"),
+        (QColor(128, 0, 128), "Аннотация"),
     ]
 
     def __init__(self, rect: QRect, region_id: int):
@@ -80,7 +82,7 @@ class OcrImageWidget(QWidget):
 
         self.regions = []
         self.current_region_id = 0
-        self.max_regions = 7
+        self.max_regions = 9
 
         self.is_selecting = False
         self.start_point = QPoint()
@@ -96,7 +98,8 @@ class OcrImageWidget(QWidget):
         #  Текущие настройки
         self.brightness_value = 0
         self.contrast_value = 0
-
+        self.zoom_factor = 1.0
+        
         self.temp_png_path = None
 
         self.setMinimumSize(400, 300)
@@ -235,21 +238,27 @@ class OcrImageWidget(QWidget):
                 traceback.print_exc()
     
     def _update_display_pixmap(self):
-        """Обновить отображаемый pixmap с учётом размера виджета."""
+        """Обновить отображаемый pixmap с учётом коэффициента масштабирования."""
         if self.adjusted_pixmap.isNull():
             return
         
-        #  Масштабируем под размер виджета с сохранением пропорций
+        # Рассчитываем целевой размер на основе zoom_factor
+        target_width = int(self.source_pixmap.width() * self.zoom_factor)
+        target_height = int(self.source_pixmap.height() * self.zoom_factor)
+        
         scaled_pixmap = self.adjusted_pixmap.scaled(
-            self.width(), 
-            self.height(), 
+            target_width, 
+            target_height, 
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         )
         
         self.display_pixmap = scaled_pixmap
         
-        #  Вычисляем коэффициенты масштабирования (ОТ source к display)
+        # Обновляем размер виджета, чтобы QScrollArea правильно работала
+        self.setFixedSize(self.display_pixmap.width(), self.display_pixmap.height())
+        
+        # Вычисляем коэффициенты масштабирования (ОТ source к display)
         if not self.source_pixmap.isNull() and self.source_pixmap.width() > 0:
             self.scale_factor_x = self.display_pixmap.width() / self.source_pixmap.width()
             self.scale_factor_y = self.display_pixmap.height() / self.source_pixmap.height()
@@ -257,9 +266,9 @@ class OcrImageWidget(QWidget):
             self.scale_factor_x = 1.0
             self.scale_factor_y = 1.0
         
-        #  Вычисляем offset для центрирования
-        self.image_offset_x = (self.width() - self.display_pixmap.width()) // 2
-        self.image_offset_y = (self.height() - self.display_pixmap.height()) // 2
+        # Вычисляем offset (теперь он всегда 0, так как виджет равен размеру картинки)
+        self.image_offset_x = 0
+        self.image_offset_y = 0
         
         self.update()
     
@@ -300,6 +309,23 @@ class OcrImageWidget(QWidget):
         
         return QPoint(src_x, src_y)
     
+    def wheelEvent(self, event):
+        """Обработка колесика мыши для зума (Ctrl + Wheel)."""
+        if event.modifiers() & Qt.ControlModifier:
+            # Изменяем zoom_factor
+            if event.angleDelta().y() > 0:
+                self.zoom_factor *= 1.1
+            else:
+                self.zoom_factor /= 1.1
+            
+            # Ограничиваем зум (от 10% до 500%)
+            self.zoom_factor = max(0.1, min(self.zoom_factor, 5.0))
+            
+            self._update_display_pixmap()
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
     def mousePressEvent(self, event):
         """ Начало выделения — конвертируем в координаты source."""
         if event.button() == Qt.LeftButton and self.current_region_id < self.max_regions:

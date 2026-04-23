@@ -61,7 +61,10 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         if 'publisher' in self._ocr_data:
             self.input_publisher.setText(self._ocr_data['publisher'])
         if 'year' in self._ocr_data:
-            self.input_year.setValue(int(self._ocr_data['year']))
+            # Sanitize year: remove all non-digit characters
+            year_str = ''.join(filter(str.isdigit, str(self._ocr_data['year'])))
+            if year_str:
+                self.input_year.setValue(int(year_str))
         if 'isbn' in self._ocr_data:
             self.input_isbn.setText(self._ocr_data['isbn'])
         if 'udc' in self._ocr_data:
@@ -69,9 +72,13 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         if 'bbk' in self._ocr_data:
             self.input_bbk.setText(self._ocr_data['bbk'])
         if 'pages' in self._ocr_data:
-            self.input_pages.setValue(int(self._ocr_data['pages']))
+            pages_str = ''.join(filter(str.isdigit, str(self._ocr_data['pages'])))
+            if pages_str:
+                self.input_pages.setValue(int(pages_str))
         if 'place' in self._ocr_data:
             self.input_place.setText(self._ocr_data['place'])
+        if 'annotation' in self._ocr_data:
+            self.text_annotation.setPlainText(self._ocr_data['annotation'])
 
     def _validate_inputs(self) -> tuple[bool, str]:
         """
