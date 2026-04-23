@@ -2,13 +2,21 @@
 """Book list widget with repository integration."""
 
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow, QLabel, QLineEdit, QGridLayout
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from ui.generated.ui_book_list_widget import Ui_BookListWidget
 
 from core.services.book_service import BookService
 from core.models.book import Book
 from ui.windows.book_card_widget import BookCardWidget
 from datetime import datetime
+
+class NumericTableWidgetItem(QTableWidgetItem):
+    """Custom QTableWidgetItem for proper numeric sorting."""
+    def __lt__(self, other):
+        try:
+            return float(self.text()) < float(other.text())
+        except (ValueError, TypeError):
+            return super().__lt__(other)
 
 class BookListWidget(QWidget, Ui_BookListWidget):
     """Виджет списка книг с интеграцией репозитория."""
@@ -108,7 +116,7 @@ class BookListWidget(QWidget, Ui_BookListWidget):
             "Аннотация (англ.)", "DOI", "Тип контента", "Метод доступа",
             "Создано", "Путь к QR", "Путь к обложке"
         ]
-
+        
         self.table_books.setColumnCount(len(ALL_BOOK_FIELDS))
         self.table_books.setHorizontalHeaderLabels(ALL_BOOK_HEADERS)
         self._all_book_fields = ALL_BOOK_FIELDS # Store for _display_books
@@ -119,6 +127,10 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         self.table_books.setSelectionMode(
             self.table_books.SingleSelection
         )
+        
+        # Enable sorting and set default sort by ID (Column 0, Ascending)
+        self.table_books.setSortingEnabled(True)
+        self.table_books.sortByColumn(0, Qt.AscendingOrder)
 
     def _load_books(self):
         """Load all books from repository."""
@@ -133,6 +145,8 @@ class BookListWidget(QWidget, Ui_BookListWidget):
 
     def _display_books(self, books: list[Book]):
         """Display books in table."""
+        # Temporarily disable sorting to avoid performance issues and unexpected behavior during population
+        self.table_books.setSortingEnabled(False)
         self.table_books.setRowCount(len(books))
         
         for row, book in enumerate(books):
@@ -140,12 +154,20 @@ class BookListWidget(QWidget, Ui_BookListWidget):
                 value = getattr(book, field_name)
                 if isinstance(value, datetime):
                     item_text = value.strftime("%Y-%m-%d %H:%M:%S")
+                    item = QTableWidgetItem(item_text)
+                elif isinstance(value, (int, float)):
+                    item_text = str(value)
+                    item = NumericTableWidgetItem(item_text)
                 else:
                     item_text = str(value)
-                self.table_books.setItem(row, col, QTableWidgetItem(item_text))
+                    item = QTableWidgetItem(item_text)
+                self.table_books.setItem(row, col, item)
         
         # Adjust column widths
         self.table_books.resizeColumnsToContents()
+        
+        # Re-enable sorting
+        self.table_books.setSortingEnabled(True)
 
     def _on_search(self):
         """Filter books by multiple search criteria including ranges (AND search)."""
