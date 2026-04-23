@@ -1,7 +1,7 @@
 # ui/windows/book_list_widget.py
 """Book list widget with repository integration."""
 
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow, QLabel, QLineEdit, QGridLayout
 from PyQt5.QtCore import pyqtSignal
 from ui.generated.ui_book_list_widget import Ui_BookListWidget
 
@@ -26,6 +26,51 @@ class BookListWidget(QWidget, Ui_BookListWidget):
 
         # Inject service
         self._book_service = book_service or BookService()
+
+        # Programmatic search fields for GOST R 7.0.4-2020
+        self.search_fields_layout = QGridLayout()
+        self.search_inputs = {}
+        
+        search_fields = [
+            ("Автор", "author", "text"),
+            ("Название", "title", "text"),
+            ("Место", "place", "text"),
+            ("Издатель", "publisher", "text"),
+            ("Год", "year", "range"),
+            ("Страницы", "pages", "range"),
+            ("ISBN", "isbn", "text"),
+        ]
+        
+        current_row = 0
+        for label_text, field_name, field_type in search_fields:
+            label = QLabel(label_text)
+            self.search_fields_layout.addWidget(label, current_row, 0)
+            
+            if field_type == "range":
+                # Create 'from' and 'to' inputs
+                edit_from = QLineEdit()
+                edit_from.setPlaceholderText("от")
+                edit_to = QLineEdit()
+                edit_to.setPlaceholderText("до")
+                
+                self.search_fields_layout.addWidget(edit_from, current_row, 1)
+                self.search_fields_layout.addWidget(edit_to, current_row, 2)
+                self.search_inputs[field_name] = (edit_from, edit_to)
+            else:
+                # Create single input
+                line_edit = QLineEdit()
+                line_edit.setPlaceholderText(f"Поиск по {label_text}...")
+                self.search_fields_layout.addWidget(line_edit, current_row, 1, 1, 2)
+                self.search_inputs[field_name] = line_edit
+            
+            current_row += 1
+
+        # Remove old single search input from layout
+        self.horizontalLayout_search.removeWidget(self.input_search)
+        self.input_search.setParent(None)
+        
+        # Insert the new search grid layout before the table
+        self.verticalLayout.insertLayout(1, self.search_fields_layout)
 
         # Store all books and filtered results
         self._all_books: list[Book] = []
@@ -103,21 +148,54 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         self.table_books.resizeColumnsToContents()
 
     def _on_search(self):
-        """Filter books by search query."""
+        """Filter books by multiple search criteria including ranges (AND search)."""
         try:
-            query = self.input_search.text().strip().lower()
+            # Build active filters
+            active_filters = {}
+            for field, input_widget in self.search_inputs.items():
+                if isinstance(input_widget, tuple):
+                    # Range field (from, to)
+                    val_from = input_widget[0].text().strip()
+                    val_to = input_widget[1].text().strip()
+                    if val_from or val_to:
+                        active_filters[field] = {"from": val_from, "to": val_to, "type": "range"}
+                else:
+                    # Text field
+                    val = input_widget.text().strip().lower()
+                    if val:
+                        active_filters[field] = {"val": val, "type": "text"}
             
-            if not query:
+            if not active_filters:
                 self._filtered_books = self._all_books.copy()
             else:
-                # Filter books by author, title, or ISBN
-                self._filtered_books = [
-                    book for book in self._all_books
-                    if (query in book.author.lower() or
-                        query in book.title.lower() or
-                        query in book.isbn.lower() or
-                        query in str(book.year))
-                ]
+                self._filtered_books = []
+                for book in self._all_books:
+                    match = True
+                    for field, filter_data in active_filters.items():
+                        val = getattr(book, field)
+                        
+                        if filter_data["type"] == "text":
+                            if filter_data["val"] not in str(val).lower():
+                                match = False
+                                break
+                        elif filter_data["type"] == "range":
+                            try:
+                                book_val = int(val)
+                                f_from = filter_data["from"]
+                                f_to = filter_data["to"]
+                                
+                                if f_from and not (int(f_from) <= book_val):
+                                    match = False
+                                    break
+                                if f_to and not (book_val <= int(f_to)):
+                                    match = False
+                                    break
+                            except (ValueError, TypeError):
+                                # If book value is not an int or input is not an int, it's not a match
+                                match = False
+                                break
+                    if match:
+                        self._filtered_books.append(book)
             
             self._display_books(self._filtered_books)
             self.label_status.setText(f"Найдено: {len(self._filtered_books)} из {len(self._all_books)}")
