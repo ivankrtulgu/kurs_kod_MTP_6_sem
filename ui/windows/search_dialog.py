@@ -1,12 +1,23 @@
 # ui/windows/search_dialog.py
 """Search dialog with repository integration."""
 
-from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox, QLabel, QLineEdit, QGridLayout, QScrollArea, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QWidget
+from PyQt5.QtCore import Qt
+import csv
 from ui.generated.ui_search_dialog import Ui_SearchDialog
 
 from core.services.book_service import BookService
 from core.models.book import Book
+from datetime import datetime
 
+
+class NumericTableWidgetItem(QTableWidgetItem):
+    """Custom QTableWidgetItem for proper numeric sorting."""
+    def __lt__(self, other):
+        try:
+            return float(self.text()) < float(other.text())
+        except (ValueError, TypeError):
+            return super().__lt__(other)
 
 class SearchDialog(QDialog, Ui_SearchDialog):
     """Диалог поиска по каталогу с интеграцией репозитория."""
@@ -21,8 +32,91 @@ class SearchDialog(QDialog, Ui_SearchDialog):
         # Store search results
         self._search_results: list[Book] = []
         
+        # Programmatic Search Fields Configuration
+        self.search_inputs = {}
+        self._setup_advanced_search_ui()
+        
         self._connect_signals()
         self._setup_table()
+
+    def _setup_advanced_search_ui(self):
+        """Build a comprehensive search form with grouped fields."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        main_layout = QVBoxLayout(scroll_content)
+        
+        groups = {
+            "Обязательные поля": [
+                ("Автор", "author", "text"),
+                ("Название", "title", "text"),
+                ("Место", "place", "text"),
+                ("Издатель", "publisher", "text"),
+                ("Год", "year", "range"),
+                ("Страницы", "pages", "range"),
+                ("ISBN", "isbn", "text"),
+            ],
+            "Дополнительные поля": [
+                ("Подзаголовок", "subtitle", "text"),
+                ("Ответственность", "responsibility", "text"),
+                ("Издание", "edition", "text"),
+                ("Авторские права", "copyright", "text"),
+                ("УДК", "udc", "text"),
+                ("ББК", "bbk", "text"),
+                ("Авторский знак", "author_mark", "text"),
+            ],
+            "Прочее": [
+                ("Рецензенты", "reviewers", "text"),
+                ("Аннотация", "annotation", "text"),
+                ("Аннотация (англ.)", "abstract", "text"),
+                ("DOI", "doi", "text"),
+                ("Тип контента", "content_type", "text"),
+                ("Метод доступа", "access_method", "text"),
+            ]
+        }
+        
+        for group_name, fields in groups.items():
+            group_box = QVBoxLayout()
+            header = QLabel(f"<b>{group_name}</b>")
+            group_box.addWidget(header)
+            
+            grid = QGridLayout()
+            for i, (label_text, field_name, field_type) in enumerate(fields):
+                label = QLabel(label_text)
+                if field_type == "range":
+                    edit_from = QLineEdit()
+                    edit_from.setPlaceholderText("от")
+                    edit_to = QLineEdit()
+                    edit_to.setPlaceholderText("до")
+                    grid.addWidget(label, i, 0)
+                    grid.addWidget(edit_from, i, 1)
+                    grid.addWidget(edit_to, i, 2)
+                    self.search_inputs[field_name] = (edit_from, edit_to)
+                else:
+                    line_edit = QLineEdit()
+                    line_edit.setPlaceholderText(f"Поиск по {label_text}...")
+                    grid.addWidget(label, i, 0)
+                    grid.addWidget(line_edit, i, 1, 1, 2)
+                    self.search_inputs[field_name] = line_edit
+            
+            group_box.addLayout(grid)
+            main_layout.addLayout(group_box)
+        
+        scroll.setWidget(scroll_content)
+        
+        # Replace the existing groupBox_search layout
+        if self.groupBox_search.layout():
+            self.input_search_author.hide()
+            self.input_search_title.hide()
+            self.input_search_isbn.hide()
+            self.input_search_udc.hide()
+            
+        parent_layout = self.layout()
+        if parent_layout:
+            idx = parent_layout.indexOf(self.groupBox_search)
+            if idx != -1:
+                parent_layout.insertWidget(idx, scroll)
+                self.groupBox_search.hide()
 
     def _connect_signals(self):
         """Connect button signals."""
@@ -31,15 +125,41 @@ class SearchDialog(QDialog, Ui_SearchDialog):
         self.btn_close.clicked.connect(self.reject)
         self.btn_open.clicked.connect(self._on_open)
         
+        # Add export buttons
+        self.btn_export_csv = QPushButton("Экспорт в CSV")
+        self.btn_export_csv.clicked.connect(self._on_export)
+        
+        self.btn_export_txt = QPushButton("Экспорт в TXT")
+        self.btn_export_txt.clicked.connect(self._on_export_txt)
+        
+        btn_layout = self.btn_search.parentWidget().layout()
+        if btn_layout:
+            btn_layout.addWidget(self.btn_export_csv)
+            btn_layout.addWidget(self.btn_export_txt)
+        
         # Connect double-click to open
         self.table_results.doubleClicked.connect(self._on_open)
 
     def _setup_table(self):
-        """Setup search results table."""
-        self.table_results.setColumnCount(5)
-        self.table_results.setHorizontalHeaderLabels([
-            "ID", "Автор", "Название", "Год", "ISBN"
-        ])
+        """Setup search results table with all fields and sorting."""
+        ALL_BOOK_FIELDS = [
+            "id", "author", "title", "subtitle", "responsibility", "edition",
+            "place", "publisher", "year", "pages", "isbn", "copyright",
+            "udc", "bbk", "author_mark", "reviewers", "annotation",
+            "abstract", "doi", "content_type", "access_method",
+            "created_at", "qr_code_path", "cover_image_path"
+        ]
+        ALL_BOOK_HEADERS = [
+            "ID", "Автор", "Название", "Подзаголовок", "Ответственность", "Издание",
+            "Место", "Издатель", "Год", "Страницы", "ISBN", "Авторские права",
+            "УДК", "ББК", "Авторский знак", "Рецензенты", "Аннотация",
+            "Аннотация (англ.)", "DOI", "Тип контента", "Метод доступа",
+            "Создано", "Путь к QR", "Путь к обложке"
+        ]
+        
+        self.table_results.setColumnCount(len(ALL_BOOK_FIELDS))
+        self.table_results.setHorizontalHeaderLabels(ALL_BOOK_HEADERS)
+        self._all_book_fields = ALL_BOOK_FIELDS
         self.table_results.horizontalHeader().setStretchLastSection(True)
         self.table_results.setSelectionBehavior(
             self.table_results.SelectRows
@@ -47,69 +167,210 @@ class SearchDialog(QDialog, Ui_SearchDialog):
         self.table_results.setSelectionMode(
             self.table_results.SingleSelection
         )
+        
+        # Enable sorting
+        self.table_results.setSortingEnabled(True)
 
     def _on_search(self):
-        """Execute search using repository."""
+        """Execute advanced search with AND filtering and ranges."""
         try:
-            # Build search query from all fields
-            author = self.input_search_author.text().strip()
-            title = self.input_search_title.text().strip()
-            isbn = self.input_search_isbn.text().strip()
-            udc = self.input_search_udc.text().strip()
+            # Build active filters
+            active_filters = {}
+            for field, input_widget in self.search_inputs.items():
+                if isinstance(input_widget, tuple):
+                    val_from = input_widget[0].text().strip()
+                    val_to = input_widget[1].text().strip()
+                    if val_from or val_to:
+                        active_filters[field] = {"from": val_from, "to": val_to, "type": "range"}
+                else:
+                    val = input_widget.text().strip().lower()
+                    if val:
+                        active_filters[field] = {"val": val, "type": "text"}
             
-            # Combine all search terms
-            search_terms = []
-            if author:
-                search_terms.append(author)
-            if title:
-                search_terms.append(title)
-            if isbn:
-                search_terms.append(isbn)
-            if udc:
-                search_terms.append(udc)
+            # Fetch all books and filter on client side
+            all_books = self._book_service.get_all_books()
             
-            query = " ".join(search_terms)
+            if not active_filters:
+                self._search_results = all_books
+            else:
+                self._search_results = []
+                for book in all_books:
+                    match = True
+                    for field, filter_data in active_filters.items():
+                        val = getattr(book, field)
+                        if filter_data["type"] == "text":
+                            if filter_data["val"] not in str(val).lower():
+                                match = False
+                                break
+                        elif filter_data["type"] == "range":
+                            try:
+                                book_val = int(val)
+                                f_from = filter_data["from"]
+                                f_to = filter_data["to"]
+                                if f_from and not (int(f_from) <= book_val):
+                                    match = False
+                                    break
+                                if f_to and not (book_val <= int(f_to)):
+                                    match = False
+                                    break
+                            except (ValueError, TypeError):
+                                match = False
+                                break
+                    if match:
+                        self._search_results.append(book)
             
-            if not query:
-                QMessageBox.warning(self, "Поиск", "Введите хотя бы один поисковый запрос")
-                return
-            
-            # Search via service
-            self._search_results = self._book_service.search_books(query)
-            
-            # Display results
             self._display_results(self._search_results)
-            
-            self.groupBox_search.setTitle(f"Параметры поиска (найдено: {len(self._search_results)})")
             
         except Exception as e:
             QMessageBox.critical(self, "Ошибка поиска", f"Ошибка: {e}")
 
     def _display_results(self, books: list[Book]):
-        """Display search results in table."""
+        """Display all book fields in results table."""
+        self.table_results.setSortingEnabled(False)
         self.table_results.setRowCount(len(books))
         
         for row, book in enumerate(books):
-            self.table_results.setItem(row, 0, QTableWidgetItem(str(book.id)))
-            self.table_results.setItem(row, 1, QTableWidgetItem(book.author))
-            self.table_results.setItem(row, 2, QTableWidgetItem(book.title))
-            self.table_results.setItem(row, 3, QTableWidgetItem(str(book.year)))
-            self.table_results.setItem(row, 4, QTableWidgetItem(book.isbn))
+            for col, field_name in enumerate(self._all_book_fields):
+                value = getattr(book, field_name)
+                if isinstance(value, datetime):
+                    item_text = value.strftime("%Y-%m-%d %H:%M:%S")
+                    item = QTableWidgetItem(item_text)
+                elif isinstance(value, (int, float)):
+                    item_text = str(value)
+                    item = NumericTableWidgetItem(item_text)
+                else:
+                    item_text = str(value)
+                    item = QTableWidgetItem(item_text)
+                self.table_results.setItem(row, col, item)
         
-        # Adjust column widths
         self.table_results.resizeColumnsToContents()
+        self.table_results.setSortingEnabled(True)
 
     def _on_clear(self):
-        """Clear search fields and results."""
-        self.input_search_author.clear()
-        self.input_search_title.clear()
-        self.input_search_isbn.clear()
-        self.input_search_udc.clear()
-        self.input_search_year_from.setValue(1900)
-        self.input_search_year_to.setValue(2100)
+        """Clear all search fields and results."""
+        for input_widget in self.search_inputs.values():
+            if isinstance(input_widget, tuple):
+                input_widget[0].clear()
+                input_widget[1].clear()
+            else:
+                input_widget.clear()
+        
         self.table_results.setRowCount(0)
         self._search_results = []
-        self.groupBox_search.setTitle("Параметры поиска")
+
+    def _format_bibliographic_record(self, book: Book) -> str:
+        """Format a book object into a bibliographic record string (approximating GOST)."""
+        parts = []
+        parts.append(f"{book.author}.")
+        title_part = book.title
+        if book.subtitle:
+            title_part += f" : {book.subtitle}"
+        parts.append(title_part)
+        if book.responsibility:
+            parts.append(f"/ {book.responsibility}.")
+        if book.edition:
+            parts.append(f"— {book.edition}.")
+        pub_info = []
+        if book.place: pub_info.append(book.place)
+        if book.publisher: pub_info.append(book.publisher)
+        if pub_info:
+            pub_str = " : ".join(pub_info)
+            parts.append(f"— {pub_str}, {book.year}.")
+        else:
+            parts.append(f"— {book.year}.")
+        if book.pages:
+            parts.append(f"— {book.pages} с.")
+        if book.isbn:
+            parts.append(f"— ISBN {book.isbn}.")
+        record = " ".join(parts)
+        return record.replace("  ", " ").strip()
+
+    def _get_books_in_table_order(self) -> list[Book]:
+        """Get books in the order they are currently displayed in the table."""
+        books_in_order = []
+        book_lookup = {book.id: book for book in self._search_results}
+        
+        for row in range(self.table_results.rowCount()):
+            book_id_item = self.table_results.item(row, 0)
+            if book_id_item:
+                try:
+                    book_id = int(book_id_item.text())
+                    if book_id in book_lookup:
+                        books_in_order.append(book_lookup[book_id])
+                except ValueError:
+                    continue
+        return books_in_order
+
+    def _on_export(self):
+        """Export search results to CSV file in table order."""
+        books_to_export = self._get_books_in_table_order()
+        if not books_to_export:
+            QMessageBox.warning(self, "Экспорт", "Нет результатов для экспорта")
+            return
+        
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Сохранить результаты поиска", 
+            "search_results.csv", "CSV Files (*.csv)"
+        )
+        
+        if not path:
+            return
+        
+        try:
+            with open(path, mode='w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.writer(f, delimiter=';')
+                writer.writerow(self._all_book_fields)
+                for book in books_to_export:
+                    row = [getattr(book, field) for field in self._all_book_fields]
+                    writer.writerow(row)
+            QMessageBox.information(self, "Экспорт", f"Данные успешно экспортированы в {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
+
+    def _on_export_txt(self):
+        """Export search results to bibliographic TXT file in table order."""
+        books_to_export = self._get_books_in_table_order()
+        if not books_to_export:
+            QMessageBox.warning(self, "Экспорт", "Нет результатов для экспорта")
+            return
+        
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Сохранить библиографические записи", 
+            "bibliographic_records.txt", "Text Files (*.txt)"
+        )
+        
+        if not path:
+            return
+        
+        try:
+            with open(path, mode='w', encoding='utf-8') as f:
+                for book in books_to_export:
+                    record = self._format_bibliographic_record(book)
+                    f.write(record + "\n")
+            
+            QMessageBox.information(self, "Экспорт", f"Записи успешно экспортированы в {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
+
+    def _on_export_txt(self):
+        """Export search results to bibliographic TXT file."""
+        if not self._search_results:
+            QMessageBox.warning(self, "Экспорт", "Нет результатов для экспорта")
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Сохранить библиографические записи", 
+            "bibliographic_records.txt", "Text Files (*.txt)"
+        )
+        if not path:
+            return
+        try:
+            with open(path, mode='w', encoding='utf-8') as f:
+                for book in self._search_results:
+                    record = self._format_bibliographic_record(book)
+                    f.write(record + "\n")
+            QMessageBox.information(self, "Экспорт", f"Записи успешно экспортированы в {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
 
     def _on_open(self):
         """Open selected book details."""
