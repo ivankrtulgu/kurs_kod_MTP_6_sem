@@ -103,18 +103,10 @@ class BookListWidget(QWidget, Ui_BookListWidget):
     def _setup_table(self):
         """Setup books table."""
         ALL_BOOK_FIELDS = [
-            "id", "author", "title", "subtitle", "responsibility", "edition",
-            "place", "publisher", "year", "pages", "isbn", "copyright",
-            "udc", "bbk", "author_mark", "reviewers", "annotation",
-            "abstract", "doi", "content_type", "access_method",
-            "created_at", "qr_code_path", "cover_image_path"
+            "id", "author", "title", "place", "publisher", "year", "pages", "isbn"
         ]
         ALL_BOOK_HEADERS = [
-            "ID", "Автор", "Название", "Подзаголовок", "Ответственность", "Издание",
-            "Место", "Издатель", "Год", "Страницы", "ISBN", "Авторские права",
-            "УДК", "ББК", "Авторский знак", "Рецензенты", "Аннотация",
-            "Аннотация (англ.)", "DOI", "Тип контента", "Метод доступа",
-            "Создано", "Путь к QR", "Путь к обложке"
+            "ID", "Автор", "Название", "Место", "Издатель", "Год", "Страницы", "ISBN"
         ]
         
         self.table_books.setColumnCount(len(ALL_BOOK_FIELDS))
