@@ -302,9 +302,16 @@ class SearchDialog(QDialog, Ui_SearchDialog):
         return books_in_order
 
     def _on_export(self):
-        """Export search results to CSV file in table order."""
-        books_to_export = self._get_books_in_table_order()
-        if not books_to_export:
+        """Export search results to CSV file with optional ID handling."""
+        # Ask user whether to include IDs
+        include_ids = QMessageBox.question(
+            self, "Экспорт ID", 
+            "Включить идентификаторы (ID) в экспортный файл?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        ) == QMessageBox.Yes
+        
+        if not self._search_results:
             QMessageBox.warning(self, "Экспорт", "Нет результатов для экспорта")
             return
         
@@ -317,12 +324,32 @@ class SearchDialog(QDialog, Ui_SearchDialog):
             return
         
         try:
+            # Determine fields to export
+            export_fields = self._all_book_fields.copy()
+            if not include_ids:
+                if 'id' in export_fields:
+                    export_fields.remove('id')
+            
+            headers_map = {
+                "id": "ID", "author": "Автор", "title": "Название", "subtitle": "Подзаголовок", 
+                "responsibility": "Ответственность", "edition": "Издание", "place": "Место", 
+                "publisher": "Издатель", "year": "Год", "pages": "Страницы", "isbn": "ISBN", 
+                "copyright": "Авторские права", "udc": "УДК", "bbk": "ББК", "author_mark": "Авторский знак", 
+                "reviewers": "Рецензенты", "annotation": "Аннотация", "abstract": "Аннотация (англ.)", 
+                "doi": "DOI", "content_type": "Тип контента", "access_method": "Метод доступа", 
+                "created_at": "Создано", "qr_code_path": "Путь к QR", "cover_image_path": "Путь к обложке"
+            }
+            export_headers = [headers_map[f] for f in export_fields]
+            
             with open(path, mode='w', newline='', encoding='utf-8-sig') as f:
                 writer = csv.writer(f, delimiter=';')
-                writer.writerow(self._all_book_fields)
+                writer.writerow(export_headers)
+                
+                books_to_export = self._get_books_in_table_order()
                 for book in books_to_export:
-                    row = [getattr(book, field) for field in self._all_book_fields]
+                    row = [getattr(book, field) for field in export_fields]
                     writer.writerow(row)
+            
             QMessageBox.information(self, "Экспорт", f"Данные успешно экспортированы в {path}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
@@ -348,26 +375,6 @@ class SearchDialog(QDialog, Ui_SearchDialog):
                     record = self._format_bibliographic_record(book)
                     f.write(record + "\n")
             
-            QMessageBox.information(self, "Экспорт", f"Записи успешно экспортированы в {path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
-
-    def _on_export_txt(self):
-        """Export search results to bibliographic TXT file."""
-        if not self._search_results:
-            QMessageBox.warning(self, "Экспорт", "Нет результатов для экспорта")
-            return
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить библиографические записи", 
-            "bibliographic_records.txt", "Text Files (*.txt)"
-        )
-        if not path:
-            return
-        try:
-            with open(path, mode='w', encoding='utf-8') as f:
-                for book in self._search_results:
-                    record = self._format_bibliographic_record(book)
-                    f.write(record + "\n")
             QMessageBox.information(self, "Экспорт", f"Записи успешно экспортированы в {path}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")

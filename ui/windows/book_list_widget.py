@@ -1,9 +1,13 @@
 # ui/windows/book_list_widget.py
 """Book list widget with repository integration."""
 
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow, QLabel, QLineEdit, QGridLayout
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow, QLabel, QLineEdit, QGridLayout, QPushButton, QFileDialog
 from PyQt5.QtCore import pyqtSignal, Qt
+import csv
+import logging
 from ui.generated.ui_book_list_widget import Ui_BookListWidget
+
+logger = logging.getLogger(__name__)
 
 from core.services.book_service import BookService
 from core.models.book import Book
@@ -93,6 +97,20 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         """Connect button signals."""
         self.btn_search.clicked.connect(self._on_search)
         self.btn_refresh.clicked.connect(self._load_books)
+        
+        # Add import button programmatically
+        self.btn_import = QPushButton("Импорт из CSV")
+        self.btn_import.clicked.connect(self._on_import)
+        
+        # Add export button programmatically
+        self.btn_export = QPushButton("Экспорт в CSV")
+        self.btn_export.clicked.connect(self._on_export)
+        
+        # Add buttons to the button layout (near btn_refresh)
+        btn_layout = self.btn_refresh.parentWidget().layout()
+        if btn_layout:
+            btn_layout.addWidget(self.btn_import)
+            btn_layout.addWidget(self.btn_export)
         
         # Connect double-click to open book card
         self.table_books.doubleClicked.connect(self._on_open_book)
@@ -216,6 +234,166 @@ class BookListWidget(QWidget, Ui_BookListWidget):
             
         except Exception as e:
             QMessageBox.critical(self, "Ошибка поиска", f"Ошибка: {e}")
+
+    def _on_import(self):
+        """Import books from a CSV file with optional ID handling."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Импорт книг", "", "CSV Files (*.csv)"
+        )
+        
+        if not path:
+            return
+
+        # Ask user whether to use IDs from the file
+        use_ids = QMessageBox.question(
+            self, "Импорт ID", 
+            "Использовать идентификаторы (ID) из файла?\nЕсли 'Нет', будут назначены новые ID.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        ) == QMessageBox.Yes
+            
+        try:
+            imported_count = 0
+            error_count = 0
+            
+            with open(path, mode='r', encoding='utf-8-sig') as f:
+                # Try different delimiters
+                success = False
+                for delimiter in [';', '\t', ',']:
+                    f.seek(0)
+                    first_line = f.readline()
+                    if delimiter not in first_line and delimiter != '\t':
+                        continue
+                    
+                    f.seek(0)
+                    reader = csv.DictReader(f, delimiter=delimiter)
+                    headers = reader.fieldnames if reader.fieldnames else []
+                    if not any(h in headers for h in ["Автор", "author", "Название", "title"]):
+                        continue
+                    
+                    for row_idx, row in enumerate(reader, start=2):
+                        try:
+                            # Helper for mapped headers
+                            def get_val(field):
+                                map_headers = {
+                                    "author": ["Автор", "author"],
+                                    "title": ["Название", "title"],
+                                    "place": ["Место", "place"],
+                                    "publisher": ["Издатель", "publisher"],
+                                    "year": ["Год", "year"],
+                                    "pages": ["Страницы", "pages"],
+                                    "isbn": ["ISBN", "isbn"],
+                                    "subtitle": ["Подзаголовок", "subtitle"],
+                                    "responsibility": ["Ответственность", "responsibility"],
+                                    "edition": ["Издание", "edition"],
+                                    "copyright": ["Авторские права", "copyright"],
+                                    "udc": ["УДК", "udc"],
+                                    "bbk": ["ББК", "bbk"],
+                                    "author_mark": ["Авторский знак", "author_mark"],
+                                    "reviewers": ["Рецензенты", "reviewers"],
+                                    "annotation": ["Аннотация", "annotation"],
+                                    "abstract": ["Аннотация (англ.)", "abstract"],
+                                    "doi": ["DOI", "doi"],
+                                    "content_type": ["Тип контента", "content_type"],
+                                    "access_method": ["Метод доступа", "access_method"],
+                                    "id": ["id", "ID"]
+                                }
+                                for h in map_headers.get(field, [field]):
+                                    if h in row: return row[h]
+                                return ""
+
+                            # ID handling
+                            book_id = 0
+                            if use_ids:
+                                try:
+                                    book_id = int(get_val("id")) if get_val("id") else 0
+                                except ValueError:
+                                    book_id = 0
+
+                            book = Book(
+                                id=book_id,
+                                author=get_val("author"),
+                                title=get_val("title"),
+                                place=get_val("place"),
+                                publisher=get_val("publisher"),
+                                year=int(get_val("year")) if get_val("year") else 0,
+                                pages=int(get_val("pages")) if get_val("pages") else 0,
+                                isbn=get_val("isbn"),
+                                subtitle=get_val("subtitle"),
+                                responsibility=get_val("responsibility"),
+                                edition=get_val("edition"),
+                                copyright=get_val("copyright"),
+                                udc=get_val("udc"),
+                                bbk=get_val("bbk"),
+                                author_mark=get_val("author_mark"),
+                                reviewers=get_val("reviewers"),
+                                annotation=get_val("annotation"),
+                                abstract=get_val("abstract"),
+                                doi=get_val("doi"),
+                                content_type=get_val("content_type") or "Текст",
+                                access_method=get_val("access_method") or "непосредственный"
+                            )
+                            
+                            self._book_service.add_book(book)
+                            imported_count += 1
+                        except Exception as e:
+                            logger.error(f"Error importing row {row_idx}: {e}")
+                            error_count += 1
+                    
+                    success = True
+                    break
+            
+            if not success:
+                QMessageBox.warning(self, "Ошибка импорта", "Не удалось распознать формат файла.")
+                return
+
+            QMessageBox.information(
+                self, "Импорт завершен", 
+                f"Успешно импортировано: {imported_count} книг.\nОшибок: {error_count}."
+            )
+            self._load_books()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка импорта", f"Критическая ошибка при чтении файла: {e}")
+
+    def _on_export(self):
+        """Export books to CSV file with optional ID handling."""
+        # Ask user whether to include IDs
+        include_ids = QMessageBox.question(
+            self, "Экспорт ID", 
+            "Включить идентификаторы (ID) в экспортный файл?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        ) == QMessageBox.Yes
+        
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Сохранить список книг", 
+            "books_export.csv", "CSV Files (*.csv)"
+        )
+        
+        if not path:
+            return
+            
+        try:
+            # Define fields to export
+            export_fields = ["id", "author", "title", "place", "publisher", "year", "pages", "isbn"]
+            export_headers = ["ID", "Автор", "Название", "Место", "Издатель", "Год", "Страницы", "ISBN"]
+            
+            if not include_ids:
+                export_fields = export_fields[1:]
+                export_headers = export_headers[1:]
+                
+            with open(path, mode='w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.writer(f, delimiter=';')
+                writer.writerow(export_headers)
+                
+                for book in self._all_books:
+                    row = [getattr(book, field) for field in export_fields]
+                    writer.writerow(row)
+            
+            QMessageBox.information(self, "Экспорт", f"Данные успешно экспортированы в {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
 
     def _on_open_book(self):
         """Open book card for selected book."""
