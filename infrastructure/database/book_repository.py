@@ -63,47 +63,47 @@ class SQLiteBookRepository(BookRepository):
         )
 
     def add(self, book: Book) -> int:
-        """Add a new book to the database."""
-        query = """
-            INSERT INTO books (
-                author, title, subtitle, responsibility, edition,
-                place, publisher, year, pages, isbn, copyright,
-                udc, bbk, author_mark, reviewers, annotation,
-                abstract, doi, content_type, access_method,
-                qr_code_path, cover_image_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
+        """Add a new book to the database. Supports custom ID if provided."""
+        if book.id != 0:
+            query = """
+                INSERT INTO books (
+                    id, author, title, subtitle, responsibility, edition,
+                    place, publisher, year, pages, isbn, copyright,
+                    udc, bbk, author_mark, reviewers, annotation,
+                    abstract, doi, content_type, access_method,
+                    qr_code_path, cover_image_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            params = (
+                book.id, book.author, book.title, book.subtitle, book.responsibility,
+                book.edition, book.place, book.publisher, book.year, book.pages,
+                book.isbn, book.copyright, book.udc, book.bbk, book.author_mark,
+                book.reviewers, book.annotation, book.abstract, book.doi,
+                book.content_type, book.access_method, book.qr_code_path, book.cover_image_path,
+            )
+        else:
+            query = """
+                INSERT INTO books (
+                    author, title, subtitle, responsibility, edition,
+                    place, publisher, year, pages, isbn, copyright,
+                    udc, bbk, author_mark, reviewers, annotation,
+                    abstract, doi, content_type, access_method,
+                    qr_code_path, cover_image_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            params = (
+                book.author, book.title, book.subtitle, book.responsibility,
+                book.edition, book.place, book.publisher, book.year, book.pages,
+                book.isbn, book.copyright, book.udc, book.bbk, book.author_mark,
+                book.reviewers, book.annotation, book.abstract, book.doi,
+                book.content_type, book.access_method, book.qr_code_path, book.cover_image_path,
+            )
+
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                query,
-                (
-                    book.author,
-                    book.title,
-                    book.subtitle,
-                    book.responsibility,
-                    book.edition,
-                    book.place,
-                    book.publisher,
-                    book.year,
-                    book.pages,
-                    book.isbn,
-                    book.copyright,
-                    book.udc,
-                    book.bbk,
-                    book.author_mark,
-                    book.reviewers,
-                    book.annotation,
-                    book.abstract,
-                    book.doi,
-                    book.content_type,
-                    book.access_method,
-                    book.qr_code_path,
-                    book.cover_image_path,
-                ),
-            )
+            cursor.execute(query, params)
             conn.commit()
-            book_id = cursor.lastrowid
+            book_id = cursor.lastrowid if book.id == 0 else book.id
             logger.info(f"Book added with ID: {book_id}")
             return book_id
 

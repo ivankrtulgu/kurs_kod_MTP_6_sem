@@ -141,7 +141,10 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         self.btn_clear.clicked.connect(self._on_clear)
         self.btn_open.clicked.connect(self._on_open)
         
-        # Add export buttons programmatically if not present
+        # Add buttons programmatically
+        self.btn_import = QPushButton("Импорт из CSV")
+        self.btn_import.clicked.connect(self._on_import)
+        
         self.btn_export_csv = QPushButton("Экспорт в CSV")
         self.btn_export_csv.clicked.connect(self._on_export)
         
@@ -151,6 +154,7 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         # Add buttons to the button area (near btn_search)
         btn_layout = self.btn_search.parentWidget().layout()
         if btn_layout:
+            btn_layout.addWidget(self.btn_import)
             btn_layout.addWidget(self.btn_export_csv)
             btn_layout.addWidget(self.btn_export_txt)
         
@@ -345,10 +349,140 @@ class SearchWidget(QWidget, Ui_SearchDialog):
                     continue
         return books_in_order
 
+    def _on_import(self):
+        """Import books from a CSV file with optional ID handling."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Импорт книг", "", "CSV Files (*.csv)"
+        )
+        
+        if not path:
+            return
+
+        # Ask user whether to use IDs from the file
+        use_ids = QMessageBox.question(
+            self, "Импорт ID", 
+            "Использовать идентификаторы (ID) из файла?\nЕсли 'Нет', будут назначены новые ID.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        ) == QMessageBox.Yes
+            
+        try:
+            imported_count = 0
+            error_count = 0
+            
+            with open(path, mode='r', encoding='utf-8-sig') as f:
+                # Try different delimiters
+                success = False
+                for delimiter in [';', '\t', ',']:
+                    f.seek(0)
+                    first_line = f.readline()
+                    if delimiter not in first_line and delimiter != '\t':
+                        continue
+                    
+                    f.seek(0)
+                    reader = csv.DictReader(f, delimiter=delimiter)
+                    headers = reader.fieldnames if reader.fieldnames else []
+                    if not any(h in headers for h in ["Автор", "author", "Название", "title"]):
+                        continue
+                    
+                    for row_idx, row in enumerate(reader, start=2):
+                        try:
+                            # Helper for mapped headers
+                            def get_val(field):
+                                map_headers = {
+                                    "author": ["Автор", "author"],
+                                    "title": ["Название", "title"],
+                                    "place": ["Место", "place"],
+                                    "publisher": ["Издатель", "publisher"],
+                                    "year": ["Год", "year"],
+                                    "pages": ["Страницы", "pages"],
+                                    "isbn": ["ISBN", "isbn"],
+                                    "subtitle": ["Подзаголовок", "subtitle"],
+                                    "responsibility": ["Ответственность", "responsibility"],
+                                    "edition": ["Издание", "edition"],
+                                    "copyright": ["Авторские права", "copyright"],
+                                    "udc": ["УДК", "udc"],
+                                    "bbk": ["ББК", "bbk"],
+                                    "author_mark": ["Авторский знак", "author_mark"],
+                                    "reviewers": ["Рецензенты", "reviewers"],
+                                    "annotation": ["Аннотация", "annotation"],
+                                    "abstract": ["Аннотация (англ.)", "abstract"],
+                                    "doi": ["DOI", "doi"],
+                                    "content_type": ["Тип контента", "content_type"],
+                                    "access_method": ["Метод доступа", "access_method"],
+                                    "id": ["id", "ID"]
+                                }
+                                for h in map_headers.get(field, [field]):
+                                    if h in row: return row[h]
+                                return ""
+
+                            # ID handling
+                            book_id = 0
+                            if use_ids:
+                                try:
+                                    book_id = int(get_val("id")) if get_val("id") else 0
+                                except ValueError:
+                                    book_id = 0
+
+                            book = Book(
+                                id=book_id,
+                                author=get_val("author"),
+                                title=get_val("title"),
+                                place=get_val("place"),
+                                publisher=get_val("publisher"),
+                                year=int(get_val("year")) if get_val("year") else 0,
+                                pages=int(get_val("pages")) if get_val("pages") else 0,
+                                isbn=get_val("isbn"),
+                                subtitle=get_val("subtitle"),
+                                responsibility=get_val("responsibility"),
+                                edition=get_val("edition"),
+                                copyright=get_val("copyright"),
+                                udc=get_val("udc"),
+                                bbk=get_val("bbk"),
+                                author_mark=get_val("author_mark"),
+                                reviewers=get_val("reviewers"),
+                                annotation=get_val("annotation"),
+                                abstract=get_val("abstract"),
+                                doi=get_val("doi"),
+                                content_type=get_val("content_type") or "Текст",
+                                access_method=get_val("access_method") or "непосредственный"
+                            )
+                            
+                            self._book_service.add_book(book)
+                            imported_count += 1
+                        except Exception as e:
+                            logger.error(f"Error importing row {row_idx}: {e}")
+                            error_count += 1
+                    
+                    success = True
+                    break
+            
+            if not success:
+                QMessageBox.warning(self, "Ошибка импорта", "Не удалось распознать формат файла.")
+                return
+
+            QMessageBox.information(
+                self, "Импорт завершен", 
+                f"Успешно импортировано: {imported_count} книг.\nОшибок: {error_count}."
+            )
+            
+            # Refresh search results to show newly imported books
+            self._on_search()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка импорта", f"Критическая ошибка при чтении файла: {e}")
+
     def _on_export(self):
-        """Export search results to CSV file in table order."""
-        books_to_export = self._get_books_in_table_order()
-        if not books_to_export:
+        """Export search results to CSV file with optional ID handling."""
+        # Ask user whether to include IDs
+        include_ids = QMessageBox.question(
+            self, "Экспорт ID", 
+            "Включить идентификаторы (ID) в экспортный файл?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        ) == QMessageBox.Yes
+        
+        if not self._search_results:
             QMessageBox.warning(self, "Экспорт", "Нет результатов для экспорта")
             return
         
@@ -361,12 +495,33 @@ class SearchWidget(QWidget, Ui_SearchDialog):
             return
         
         try:
+            # Determine fields to export
+            export_fields = self._all_book_fields.copy()
+            if not include_ids:
+                if 'id' in export_fields:
+                    export_fields.remove('id')
+            
+            headers_map = {
+                "id": "ID", "author": "Автор", "title": "Название", "subtitle": "Подзаголовок", 
+                "responsibility": "Ответственность", "edition": "Издание", "place": "Место", 
+                "publisher": "Издатель", "year": "Год", "pages": "Страницы", "isbn": "ISBN", 
+                "copyright": "Авторские права", "udc": "УДК", "bbk": "ББК", "author_mark": "Авторский знак", 
+                "reviewers": "Рецензенты", "annotation": "Аннотация", "abstract": "Аннотация (англ.)", 
+                "doi": "DOI", "content_type": "Тип контента", "access_method": "Метод доступа", 
+                "created_at": "Создано", "qr_code_path": "Путь к QR", "cover_image_path": "Путь к обложке"
+            }
+            export_headers = [headers_map[f] for f in export_fields]
+            
             with open(path, mode='w', newline='', encoding='utf-8-sig') as f:
                 writer = csv.writer(f, delimiter=';')
-                writer.writerow(self._all_book_fields)
+                writer.writerow(export_headers)
+                
+                # Export in current table order
+                books_to_export = self._get_books_in_table_order()
                 for book in books_to_export:
-                    row = [getattr(book, field) for field in self._all_book_fields]
+                    row = [getattr(book, field) for field in export_fields]
                     writer.writerow(row)
+            
             QMessageBox.information(self, "Экспорт", f"Данные успешно экспортированы в {path}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка экспорта", f"Не удалось сохранить файл: {e}")
