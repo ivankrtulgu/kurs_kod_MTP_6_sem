@@ -231,7 +231,8 @@ class OcrWindow(QWidget):
         
         #  Скролл-область для изображения
         scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidgetResizable(False)
+        scroll_area.setAlignment(Qt.AlignCenter)
         scroll_area.setMinimumSize(800, 600)
         
         self.image_widget = OcrImageWidget()
@@ -409,7 +410,7 @@ class OcrWindow(QWidget):
         self.label_status.setStyleSheet("color: #718096; font-style: italic;")
         status_layout.addWidget(self.label_status)
 
-        self.label_progress = QLabel("Области: 0/9")
+        self.label_progress = QLabel("Области: 0/10")
         self.label_progress.setStyleSheet("font-weight: 600; color: #68a385;")
         status_layout.addWidget(self.label_progress)
 
@@ -546,7 +547,7 @@ class OcrWindow(QWidget):
     def _on_image_loaded(self, path: str):
         """Изображение загружено."""
         self.label_status.setText(f"Загружено: {os.path.basename(path)}")
-        self.label_progress.setText("Области: 0/7")
+        self.label_progress.setText("Области: 0/10")
         
         self.label_image_size.setText(f"Размер: {self.image_widget.source_pixmap.width()}x{self.image_widget.source_pixmap.height()}")
         
@@ -578,7 +579,7 @@ class OcrWindow(QWidget):
     
     def _on_region_selected(self, region_id: int, rect: QRect):
         """Область выделена."""
-        self.label_progress.setText(f"Области: {region_id + 1}/7")
+        self.label_progress.setText(f"Области: {region_id + 1}/10")
         self._update_table()
 
         #  Предпросмотр с применёнными настройками (яркость/контраст)
@@ -591,7 +592,7 @@ class OcrWindow(QWidget):
     def _on_region_completed(self, regions: list):
         """Все 7 областей выделены."""
         self.label_status.setText(" Все области выделены!")
-        self.label_progress.setText("Области: 7/7 — Готово!")
+        self.label_progress.setText("Области: 10/10 — Готово!")
         self.btn_apply.setEnabled(True)
 
         QMessageBox.information(
@@ -695,7 +696,7 @@ class OcrWindow(QWidget):
         """Сбросить все области."""
         self.image_widget.reset_regions()
         self.label_status.setText("Области сброшены")
-        self.label_progress.setText("Области: 0/7")
+        self.label_progress.setText("Области: 0/10")
         self.table_regions.setRowCount(0)
         self.label_preview.clear()
         self.text_ocr_result.setText("Распознанный текст появится здесь...")
@@ -760,6 +761,8 @@ class OcrWindow(QWidget):
                     data['bbk'] = region.ocr_text
                 elif region.id == 8:  # Annotation
                     data['annotation'] = region.ocr_text
+                elif region.id == 9:  # Author Mark
+                    data['author_mark'] = region.ocr_text
         return data
 
 

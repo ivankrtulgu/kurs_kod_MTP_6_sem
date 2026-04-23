@@ -79,6 +79,8 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
             self.input_place.setText(self._ocr_data['place'])
         if 'annotation' in self._ocr_data:
             self.text_annotation.setPlainText(self._ocr_data['annotation'])
+        if 'author_mark' in self._ocr_data:
+            self.input_author_mark.setText(self._ocr_data['author_mark'])
 
     def _validate_inputs(self) -> tuple[bool, str]:
         """

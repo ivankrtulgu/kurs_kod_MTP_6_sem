@@ -20,6 +20,7 @@ class OcrRegion:
         (QColor(0, 255, 255), "УДК"),
         (QColor(255, 165, 0), "ББК"),
         (QColor(128, 0, 128), "Аннотация"),
+        (QColor(0, 128, 0), "Авторский знак"),
     ]
 
     def __init__(self, rect: QRect, region_id: int):
@@ -82,7 +83,7 @@ class OcrImageWidget(QWidget):
 
         self.regions = []
         self.current_region_id = 0
-        self.max_regions = 9
+        self.max_regions = 10
 
         self.is_selecting = False
         self.start_point = QPoint()
@@ -428,6 +429,23 @@ class OcrImageWidget(QWidget):
     
     def _show_context_menu(self, pos):
         menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #ffffff;
+                color: #2d3748;
+                border: 1px solid #e2e8f0;
+                padding: 4px;
+            }
+            QMenu::item {
+                padding: 8px 24px 8px 20px;
+                background-color: transparent;
+                color: #2d3748;
+            }
+            QMenu::item:selected {
+                background-color: #f0fff4;
+                color: #68a385;
+            }
+        """)
         
         reset_action = QAction("Сбросить все области", self)
         reset_action.triggered.connect(self.reset_regions)
