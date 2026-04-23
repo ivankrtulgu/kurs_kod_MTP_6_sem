@@ -19,6 +19,7 @@ class Settings:
     DATABASE_PATH: Path = Path(os.getenv("DATABASE_PATH", BASE_DIR / "library.db"))
     RESOURCES_PATH: Path = Path(os.getenv("RESOURCES_PATH", BASE_DIR / "resources"))
     TEMP_PATH: Path = Path(os.getenv("TEMP_PATH", BASE_DIR / "temp"))
+    QR_SALT: str = os.getenv("QR_SALT", "lib_unique_salt_2026")
 
     @classmethod
     def ensure_dirs(cls) -> None:

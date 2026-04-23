@@ -3,6 +3,8 @@
 
 from PyQt5.QtWidgets import QWidget, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImage
+from pathlib import Path
 from ui.generated.ui_book_card_widget import Ui_BookCardWidget
 
 from core.services.book_service import BookService
@@ -66,45 +68,9 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
         self.label_udc_value.setText(book.udc or "—")
         self.label_bbk_value.setText(book.bbk or "—")
         
-        # Display cover image if available
-        if book.cover_image_path:
-            from PyQt5.QtGui import QPixmap, QImage
-            from pathlib import Path
-            cover_path = Path(book.cover_image_path)
-            if cover_path.exists() and cover_path.is_file():
-                try:
-                    from PIL import Image
-                    # Open image using Pillow to bypass Qt plugin issues (especially for JPG)
-                    with Image.open(cover_path) as img:
-                        img = img.convert("RGBA")
-                        data = img.tobytes("raw", "RGBA")
-                        
-                        # Create QImage from Pillow bytes
-                        qimg = QImage(data, img.size[0], img.size[1], QImage.Format_RGBA8888)
-                        pixmap = QPixmap.fromImage(qimg)
-                        
-                        # Scale pixmap to fit the label while maintaining aspect ratio
-                        label_size = self.label_cover.size()
-                        if not label_size.isEmpty():
-                            scaled_pixmap = pixmap.scaled(
-                                label_size,
-                                Qt.KeepAspectRatio,
-                                Qt.SmoothTransformation
-                            )
-                            self.label_cover.setPixmap(scaled_pixmap)
-                            self.label_cover.setText("")  # Clear placeholder text
-                        else:
-                            self.label_cover.setText("Ошибка размера\nвиджета")
-                except ImportError:
-                    print("Error: Pillow library not installed. Run 'pip install Pillow'")
-                    self.label_cover.setText("Установите\nPillow")
-                except Exception as e:
-                    print(f"Error loading image with Pillow: {e}")
-                    self.label_cover.setText("Ошибка загрузки\nфайла")
-            else:
-                self.label_cover.setText("Обложка\nне найдена")
-        else:
-            self.label_cover.setText("Нет обложки")
+        # Display images
+        self._load_image_to_label(book.cover_image_path, self.label_cover, "Обложка не найдена", "Нет обложки")
+        self._load_image_to_label(book.qr_code_path, self.label_qr, "QR-код не найден", "QR-код не сгенерирован")
         
         # Bibliographic record
         biblio = book.format_bibliographic_record()
@@ -129,6 +95,42 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
             self.groupBox_additional.setTitle("Дополнительная информация")
             self.label_udc_value.setText(book.udc or "—")
             self.label_bbk_value.setText(book.bbk or "—")
+
+    def _load_image_to_label(self, image_path: str | None, label, not_found_text: str, no_path_text: str):
+        """Helper to load an image into a QLabel using Pillow."""
+        if not image_path:
+            label.setText(no_path_text)
+            return
+
+        path = Path(image_path)
+        if not (path.exists() and path.is_file()):
+            label.setText(not_found_text)
+            return
+
+        try:
+            from PIL import Image
+            with Image.open(path) as img:
+                img = img.convert("RGBA")
+                data = img.tobytes("raw", "RGBA")
+                qimg = QImage(data, img.size[0], img.size[1], QImage.Format_RGBA8888)
+                pixmap = QPixmap.fromImage(qimg)
+                
+                label_size = label.size()
+                if not label_size.isEmpty():
+                    scaled_pixmap = pixmap.scaled(
+                        label_size,
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation
+                    )
+                    label.setPixmap(scaled_pixmap)
+                    label.setText("")
+                else:
+                    label.setText("Ошибка размера\nвиджета")
+        except ImportError:
+            label.setText("Установите\nPillow")
+        except Exception as e:
+            print(f"Error loading image {image_path}: {e}")
+            label.setText("Ошибка загрузки\nфайла")
 
     def get_book_title(self) -> str:
         """Get book title for window title."""
@@ -230,8 +232,14 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
             
             settings.ensure_dirs()
             
-            # Create QR code with bibliographic record or DOI
-            qr_data = self._book.doi or self._book.isbn or self._book.format_bibliographic_record()
+            # Create QR code with data in JSON format
+            import json
+            qr_dict = {
+                "isbn": self._book.isbn,
+                "doi": self._book.doi,
+                "biblio": self._book.format_bibliographic_record()
+            }
+            qr_data = json.dumps(qr_dict, ensure_ascii=False)
             
             qr = qrcode.QRCode(
                 version=1,
@@ -247,7 +255,14 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
             # Save QR code
             qr_dir = settings.RESOURCES_PATH / "qr_codes"
             qr_dir.mkdir(parents=True, exist_ok=True)
-            qr_path = qr_dir / f"book_{self._book_id}_qr.png"
+            
+            # Unique filename: id + isbn + random salt
+            import secrets
+            import string
+            random_salt = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+            
+            filename = f"qr_{self._book.id}_{self._book.isbn}_{random_salt}.png"
+            qr_path = qr_dir / filename
             img.save(qr_path)
             
             QMessageBox.information(
