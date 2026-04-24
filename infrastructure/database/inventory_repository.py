@@ -130,6 +130,23 @@ class SQLiteInventoryRepository:
                 ) for row in rows
             ]
 
+    def get_all_items(self) -> List[BookItem]:
+        """Fetch all physical book items from the database."""
+        query = "SELECT * FROM book_items"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return [
+                BookItem(
+                    id=row["id"],
+                    inventory_number=row["inventory_number"],
+                    book_id=row["book_id"],
+                    status=ItemStatus(row["status"]),
+                    location=row["location"] or ""
+                ) for row in rows
+            ]
+
     def update_item_status(self, item_id: int, status: ItemStatus) -> bool:
         query = "UPDATE book_items SET status = ? WHERE id = ?"
         with self._db.get_connection() as conn:

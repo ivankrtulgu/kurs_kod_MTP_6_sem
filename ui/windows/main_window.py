@@ -135,7 +135,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _on_show_inventory(self):
         """Open the inventory list window."""
         from ui.windows.inventory_list_widget import InventoryListWidget
-        self._open_mdi_subwindow(InventoryListWidget, self._inventory_service)
+        self._open_mdi_subwindow(InventoryListWidget, self._inventory_service, self._book_service)
 
     def _on_issue_clicked(self):
         """Open the issue book dialog."""

@@ -56,10 +56,15 @@ class InventoryTableModel(QAbstractTableModel):
             return self._headers[section]
         return None
 
-    def refresh_data(self, book_id: int):
+    def refresh_data(self, book_id: int | None = None):
         """
-        Fetch fresh data from the service for a specific book.
+        Fetch fresh data from the service. 
+        If book_id is provided, fetch items for that book.
+        If book_id is None, fetch all items in the fund.
         """
         self.beginResetModel()
-        self._items = self._service.get_items_by_book(book_id)
+        if book_id is not None:
+            self._items = self._service.get_items_by_book(book_id)
+        else:
+            self._items = self._service.get_all_items()
         self.endResetModel()

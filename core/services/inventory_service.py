@@ -50,6 +50,10 @@ class InventoryService:
         """Get all physical copies of a specific book."""
         return self._repo.get_items_by_book(book_id)
 
+    def get_all_items(self) -> List[BookItem]:
+        """Get all physical copies across all books in the library."""
+        return self._repo.get_all_items()
+
     # --- Circulation (Loans & Returns) ---
 
     def issue_item_by_inv(self, inv_num: str, reader_id: int, days: int = 14) -> int:
