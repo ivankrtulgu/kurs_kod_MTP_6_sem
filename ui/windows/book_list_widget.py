@@ -27,6 +27,8 @@ class BookListWidget(QWidget, Ui_BookListWidget):
 
     # Signal to notify parent when window should be closed
     close_requested = pyqtSignal()
+    # Signal for book selection in selection mode
+    book_selected = pyqtSignal(int)
 
     def __init__(
         self,
@@ -35,6 +37,9 @@ class BookListWidget(QWidget, Ui_BookListWidget):
     ):
         super().__init__(parent)
         self.setupUi(self)
+
+        # Mode: if True, double-click selects a book instead of opening its card
+        self.selection_mode = False
 
         # Inject service
         self._book_service = book_service or BookService()
@@ -222,7 +227,7 @@ class BookListWidget(QWidget, Ui_BookListWidget):
             QMessageBox.critical(self, "Ошибка поиска", f"Ошибка: {e}")
 
     def _on_open_book(self):
-        """Open book card for selected book."""
+        """Handle double-click on book entry."""
         try:
             row = self.table_books.currentRow()
             if row < 0:
@@ -236,6 +241,12 @@ class BookListWidget(QWidget, Ui_BookListWidget):
                 return
 
             book_id = int(book_id_item.text())
+
+            # If in selection mode, emit selection signal and close
+            if self.selection_mode:
+                self.book_selected.emit(book_id)
+                self.close_requested.emit()
+                return
 
             # Find parent main window and open book card
             parent_window = self.window()

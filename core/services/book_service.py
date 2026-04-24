@@ -424,8 +424,21 @@ class BookService:
     def count_books(self) -> int:
         """
         Get total number of books.
-
+        
         Returns:
             int: Number of books in repository.
         """
         return self._repository.count()
+
+    def get_book_by_id(self, book_id: int) -> Optional[Book]:
+        """
+        Helper method to get a book by ID.
+        
+        Args:
+            book_id: Book ID.
+            
+        Returns:
+            Book | None: Book object if found, None otherwise.
+        """
+        return self.get_book(book_id)
+
