@@ -55,6 +55,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Инвентарь (Inventory)
         self.act_add_items.triggered.connect(self._on_add_items_clicked)
         self.act_show_inv.triggered.connect(self._on_show_inventory)
+        self.act_show_loans.triggered.connect(self._on_show_loans)
         self.act_issue.triggered.connect(self._on_issue_clicked)
         self.act_return.triggered.connect(self._on_return_clicked)
         
@@ -103,6 +104,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.act_show_inv.setToolTip("Открыть список физических экземпляров")
         toolbar.addAction(self.act_show_inv)
 
+        self.act_show_loans = QAction(QIcon.fromTheme("edit-paste"), "Выданные книги", self)
+        self.act_show_loans.setToolTip("Список всех текущих выдач")
+        toolbar.addAction(self.act_show_loans)
+
         self.act_issue = QAction(QIcon.fromTheme("document-send"), "Выдать книгу", self)
         self.act_issue.setToolTip("Оформить выдачу экземпляра читателю")
         toolbar.addAction(self.act_issue)
@@ -139,6 +144,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Open the inventory list window."""
         from ui.windows.inventory_list_widget import InventoryListWidget
         self._open_mdi_subwindow(InventoryListWidget, self._inventory_service, self._book_service)
+
+    def _on_show_loans(self):
+        """Open the active loans list window."""
+        from ui.windows.active_loans_widget import ActiveLoansWidget
+        self._open_mdi_subwindow(ActiveLoansWidget, self._inventory_service, self._book_service)
+        self.statusbar.showMessage("Список выданных книг открыт", 3000)
 
     def _on_issue_clicked(self):
         """Open the issue book window as MDI child."""

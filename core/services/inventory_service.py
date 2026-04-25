@@ -174,6 +174,14 @@ class InventoryService:
         """Get books currently held by a reader."""
         return self._repo.get_loans_by_reader(reader_id, active_only=True)
 
+    def get_all_active_loans(self) -> List[LoanRecord]:
+        """Get all currently active loans across the entire library."""
+        return self._repo.get_all_active_loans()
+
+    def get_all_loans(self) -> List[LoanRecord]:
+        """Get full history of all loans."""
+        return self._repo.get_all_loans()
+
     # --- Reader Management ---
 
     def add_reader(self, reader: Reader) -> int:

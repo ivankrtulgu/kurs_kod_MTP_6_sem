@@ -346,3 +346,43 @@ class SQLiteInventoryRepository:
                     condition_on_return=row["condition_on_return"]
                 ) for row in rows
             ]
+
+    def get_all_active_loans(self) -> List[LoanRecord]:
+        """Fetch all currently active loans from the database."""
+        query = "SELECT * FROM loan_records WHERE return_date IS NULL OR return_date = ''"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return [
+                LoanRecord(
+                    id=row["id"],
+                    item_id=row["item_id"],
+                    reader_id=row["reader_id"],
+                    issue_date=datetime.fromisoformat(row["issue_date"]),
+                    due_date=datetime.fromisoformat(row["due_date"]),
+                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    condition_on_issue=row["condition_on_issue"] or "",
+                    condition_on_return=row["condition_on_return"]
+                ) for row in rows
+            ]
+
+    def get_all_loans(self) -> List[LoanRecord]:
+        """Fetch all loan records, including closed ones."""
+        query = "SELECT * FROM loan_records"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return [
+                LoanRecord(
+                    id=row["id"],
+                    item_id=row["item_id"],
+                    reader_id=row["reader_id"],
+                    issue_date=datetime.fromisoformat(row["issue_date"]),
+                    due_date=datetime.fromisoformat(row["due_date"]),
+                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    condition_on_issue=row["condition_on_issue"] or "",
+                    condition_on_return=row["condition_on_return"]
+                ) for row in rows
+            ]

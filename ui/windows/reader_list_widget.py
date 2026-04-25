@@ -79,6 +79,7 @@ class ReaderListWidget(QWidget):
             # Edit reader
             main_window = self.window()
             if hasattr(main_window, '_open_mdi_subwindow'):
+                from ui.windows.add_reader_widget import AddReaderWidget
                 main_window._open_mdi_subwindow(AddReaderWidget, self._service, reader_id=reader_id)
 
     def refresh_list(self):
