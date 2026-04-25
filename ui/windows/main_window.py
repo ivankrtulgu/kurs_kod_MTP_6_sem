@@ -49,6 +49,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_search.triggered.connect(self._open_search)
         self.action_export.triggered.connect(self._on_export)
 
+        # Клиенты
+        self.act_show_readers.triggered.connect(self._on_show_readers)
+
         # Инвентарь (Inventory)
         self.act_add_items.triggered.connect(self._on_add_items_clicked)
         self.act_show_inv.triggered.connect(self._on_show_inventory)
@@ -58,10 +61,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Сервис
         self.action_ocr.triggered.connect(self._on_ocr)
         self.action_generate_qr.triggered.connect(self._on_generate_qr)
-
+        
         # Файл
         self.action_exit.triggered.connect(self.close)
-
+        
         # Справка
         self.action_about.triggered.connect(self._open_about)
 
@@ -74,36 +77,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.statusbar.showMessage(f"Ошибка: {e}", 5000)
 
     def _setup_inventory_toolbar(self):
-        """Add inventory management actions to the toolbar."""
+        """Add inventory and client management actions to the toolbar."""
         from PyQt5.QtGui import QIcon
         from PyQt5.QtWidgets import QAction, QToolBar
-
-        # If you have a toolbar already defined in .ui, we add to it.
-        # Otherwise, we create a new one.
+        
         if hasattr(self, 'mainToolBar'):
             toolbar = self.mainToolBar
         else:
-            toolbar = QToolBar("Inventory Toolbar")
+            toolbar = QToolBar("Management Toolbar")
             self.addToolBar(toolbar)
 
+        # Section: Clients
         toolbar.addSeparator()
+        self.act_show_readers = QAction(QIcon.fromTheme("users"), "Клиенты", self)
+        self.act_show_readers.setToolTip("Открыть список читателей")
+        toolbar.addAction(self.act_show_readers)
 
-        # Action: Add Items
+        # Section: Inventory
+        toolbar.addSeparator()
         self.act_add_items = QAction(QIcon.fromTheme("document-new"), "Добавить экземпляры", self)
         self.act_add_items.setToolTip("Добавить новые физические копии произведения")
         toolbar.addAction(self.act_add_items)
 
-        # Action: Show Inventory List
         self.act_show_inv = QAction(QIcon.fromTheme("view-list"), "Учет экземпляров", self)
         self.act_show_inv.setToolTip("Открыть список физических экземпляров")
         toolbar.addAction(self.act_show_inv)
 
-        # Action: Issue Book
         self.act_issue = QAction(QIcon.fromTheme("document-send"), "Выдать книгу", self)
         self.act_issue.setToolTip("Оформить выдачу экземпляра читателю")
         toolbar.addAction(self.act_issue)
 
-        # Action: Return Book
         self.act_return = QAction(QIcon.fromTheme("document-open"), "Принять книгу", self)
         self.act_return.setToolTip("Оформить возврат экземпляра")
         toolbar.addAction(self.act_return)
@@ -138,18 +141,50 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._open_mdi_subwindow(InventoryListWidget, self._inventory_service, self._book_service)
 
     def _on_issue_clicked(self):
-        """Open the issue book dialog."""
-        from ui.dialogs.issue_dialog import IssueBookDialog
-        dialog = IssueBookDialog(self._inventory_service, self)
-        if dialog.exec_():
-            self._refresh_inventory_windows()
+        """Open the issue book window as MDI child."""
+        from ui.windows.issue_book_widget import IssueBookWidget
+        widget = self._open_mdi_subwindow(IssueBookWidget, self._inventory_service)
+        self.statusbar.showMessage("Окно выдачи открыто", 3000)
 
     def _on_return_clicked(self):
-        """Open the return book dialog."""
-        from ui.dialogs.return_dialog import ReturnBookDialog
-        dialog = ReturnBookDialog(self._inventory_service, self)
-        if dialog.exec_():
-            self._refresh_inventory_windows()
+        """Open the return book window as MDI child."""
+        from ui.windows.return_book_widget import ReturnBookWidget
+        widget = self._open_mdi_subwindow(ReturnBookWidget, self._inventory_service)
+        self.statusbar.showMessage("Окно возврата открыто", 3000)
+
+    def _on_show_readers(self):
+        """Open the reader list window."""
+        from ui.windows.reader_list_widget import ReaderListWidget
+        self._open_mdi_subwindow(ReaderListWidget, self._inventory_service)
+        self.statusbar.showMessage("Список клиентов открыт", 3000)
+
+    def _open_issue_window(self, inv_num: str | None = None):
+        """Open issue window and optionally pre-fill the item."""
+        from ui.windows.issue_book_widget import IssueBookWidget
+        widget = self._open_mdi_subwindow(IssueBookWidget, self._inventory_service)
+        if inv_num:
+            widget.set_item(inv_num)
+        return widget
+
+    def _open_return_window(self, inv_num: str | None = None):
+        """Open return window and optionally pre-fill the item."""
+        from ui.windows.return_book_widget import ReturnBookWidget
+        widget = self._open_mdi_subwindow(ReturnBookWidget, self._inventory_service)
+        if inv_num:
+            widget.set_item(inv_num)
+        return widget
+
+    def _open_book_item_card(self, item_id: int):
+        """Open physical book item card as MDI child."""
+        from ui.windows.book_item_card_widget import BookItemCardWidget
+        widget = self._open_mdi_subwindow(
+            BookItemCardWidget, 
+            item_id, 
+            self._inventory_service, 
+            self._book_service, 
+            self
+        )
+        self.statusbar.showMessage("Карточка экземпляра открыта", 3000)
 
     def _on_add_items_clicked(self):
         """Open the add items window as MDI child."""
@@ -159,44 +194,65 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if widget:
             widget.items_added.connect(self._refresh_inventory_windows)
 
-    def _open_book_list_for_selection(self, callback_dialog):
+    def _open_book_list_for_selection(self, callback):
         """
         Open BookListWidget in selection mode.
-        When a book is double-clicked, it notifies the callback_dialog.
+        When a book is double-clicked, it notifies the callback.
         """
         from ui.windows.book_list_widget import BookListWidget
         
-        # Use _open_mdi_subwindow to get the widget
-        # Pass book_service as a keyword argument to avoid it being treated as the 'parent'
         list_widget = self._open_mdi_subwindow(BookListWidget, book_service=self._book_service)
         
         if list_widget:
-            # Enable selection mode
             list_widget.selection_mode = True
             
-            # Connect selection signal to the dialog
             def handle_selection(book_id):
-                # Find the book object to get its text
                 book = self._book_service.get_book_by_id(book_id)
                 if book:
                     book_text = f"{book.author}. {book.title}"
-                    callback_dialog.set_selected_book(book_id, book_text)
+                    callback(book_id, book_text)
                 
-                # Return to normal mode
                 list_widget.selection_mode = False
-                
-                # Close the selection window automatically after choice
                 sub_window = self.mdi_area.activeSubWindow()
                 if sub_window and sub_window.widget() == list_widget:
                     sub_window.close()
             
-            # Disconnect any previous selection handlers to avoid duplicates
             try:
                 list_widget.book_selected.disconnect()
             except TypeError:
                 pass
                 
             list_widget.book_selected.connect(handle_selection)
+
+    def _open_reader_list_for_selection(self, callback):
+        """
+        Open ReaderListWidget in selection mode.
+        When a reader is double-clicked, it notifies the callback.
+        """
+        from ui.windows.reader_list_widget import ReaderListWidget
+        
+        list_widget = self._open_mdi_subwindow(ReaderListWidget, self._inventory_service)
+        
+        if list_widget:
+            list_widget.selection_mode = True
+            
+            def handle_selection(reader_id):
+                reader = self._inventory_service._repo.get_reader_by_id(reader_id)
+                if reader:
+                    callback(reader_id, reader.full_name)
+                
+                list_widget.selection_mode = False
+                sub_window = self.mdi_area.activeSubWindow()
+                if sub_window and sub_window.widget() == list_widget:
+                    sub_window.close()
+            
+            try:
+                list_widget.reader_selected.disconnect()
+            except TypeError:
+                pass
+                
+            list_widget.reader_selected.connect(handle_selection)
+
 
 
     def _refresh_inventory_windows(self):

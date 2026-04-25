@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, List
 
-from core.models.inventory import BookItem, LoanRecord, ItemStatus
+from core.models.inventory import BookItem, LoanRecord, ItemStatus, Reader
 from infrastructure.database.inventory_repository import SQLiteInventoryRepository
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,10 @@ class InventoryService:
     def get_all_items(self) -> List[BookItem]:
         """Get all physical copies across all books in the library."""
         return self._repo.get_all_items()
+
+    def update_item_location(self, item_id: int, location: str) -> bool:
+        """Update the location of a physical item."""
+        return self._repo.update_item_location(item_id, location)
 
     # --- Circulation (Loans & Returns) ---
 
@@ -169,3 +173,21 @@ class InventoryService:
     def get_reader_current_loans(self, reader_id: int) -> List[LoanRecord]:
         """Get books currently held by a reader."""
         return self._repo.get_loans_by_reader(reader_id, active_only=True)
+
+    # --- Reader Management ---
+
+    def add_reader(self, reader: Reader) -> int:
+        """Add a new reader to the system."""
+        return self._repo.add_reader(reader)
+
+    def update_reader(self, reader: Reader) -> bool:
+        """Update existing reader details."""
+        return self._repo.update_reader(reader)
+
+    def delete_reader(self, reader_id: int) -> bool:
+        """Remove a reader from the system."""
+        return self._repo.delete_reader(reader_id)
+
+    def get_all_readers(self) -> List[Reader]:
+        """Get a list of all registered readers."""
+        return self._repo.get_all_readers()

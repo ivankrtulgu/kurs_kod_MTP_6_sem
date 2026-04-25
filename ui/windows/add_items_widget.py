@@ -86,7 +86,7 @@ class AddItemsWidget(QWidget):
         """Request the main window to open the BookListWidget in selection mode."""
         parent_window = self.window()
         if hasattr(parent_window, '_open_book_list_for_selection'):
-            parent_window._open_book_list_for_selection(self)
+            parent_window._open_book_list_for_selection(self.set_selected_book)
         else:
             QMessageBox.critical(self, "Ошибка", "Система выбора книг не доступна")
 

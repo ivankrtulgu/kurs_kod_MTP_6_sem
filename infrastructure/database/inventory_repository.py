@@ -43,6 +43,7 @@ class SQLiteInventoryRepository:
                 book_id INTEGER NOT NULL,
                 status TEXT NOT NULL,
                 location TEXT,
+                qr_code_path TEXT,
                 FOREIGN KEY (book_id) REFERENCES books (id)
             )
             """,
@@ -59,12 +60,19 @@ class SQLiteInventoryRepository:
                 FOREIGN KEY (item_id) REFERENCES book_items (id),
                 FOREIGN KEY (reader_id) REFERENCES readers (id)
             )
-            """
+            """,
         ]
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             for query in queries:
                 cursor.execute(query)
+            
+            # Migration: Add qr_code_path if it doesn't exist
+            try:
+                cursor.execute("ALTER TABLE book_items ADD COLUMN qr_code_path TEXT")
+            except Exception:
+                pass # Column already exists
+                
             conn.commit()
 
     # --- BookItem Methods ---
@@ -93,7 +101,8 @@ class SQLiteInventoryRepository:
                     inventory_number=row["inventory_number"],
                     book_id=row["book_id"],
                     status=ItemStatus(row["status"]),
-                    location=row["location"] or ""
+                    location=row["location"] or "",
+                    qr_code_path=row["qr_code_path"]
                 )
             return None
 
@@ -110,7 +119,8 @@ class SQLiteInventoryRepository:
                     inventory_number=row["inventory_number"],
                     book_id=row["book_id"],
                     status=ItemStatus(row["status"]),
-                    location=row["location"] or ""
+                    location=row["location"] or "",
+                    qr_code_path=row["qr_code_path"]
                 )
             return None
 
@@ -126,7 +136,8 @@ class SQLiteInventoryRepository:
                     inventory_number=row["inventory_number"],
                     book_id=row["book_id"],
                     status=ItemStatus(row["status"]),
-                    location=row["location"] or ""
+                    location=row["location"] or "",
+                    qr_code_path=row["qr_code_path"]
                 ) for row in rows
             ]
 
@@ -147,6 +158,24 @@ class SQLiteInventoryRepository:
                 ) for row in rows
             ]
 
+    def update_item_qr_path(self, item_id: int, qr_path: str) -> bool:
+        """Update the QR code file path for a book item."""
+        query = "UPDATE book_items SET qr_code_path = ? WHERE id = ?"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (qr_path, item_id))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def update_item_location(self, item_id: int, location: str) -> bool:
+        """Update the shelf location for a book item."""
+        query = "UPDATE book_items SET location = ? WHERE id = ?"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (location, item_id))
+            conn.commit()
+            return cursor.rowcount > 0
+
     def update_item_status(self, item_id: int, status: ItemStatus) -> bool:
         query = "UPDATE book_items SET status = ? WHERE id = ?"
         with self._db.get_connection() as conn:
@@ -165,7 +194,7 @@ class SQLiteInventoryRepository:
             return result if result is not None else 0
 
     # --- Reader Methods ---
-
+    
     def add_reader(self, reader: Reader) -> int:
         query = "INSERT INTO readers (full_name, phone, is_active) VALUES (?, ?, ?)"
         params = (reader.full_name, reader.phone, reader.is_active)
@@ -174,6 +203,41 @@ class SQLiteInventoryRepository:
             cursor.execute(query, params)
             conn.commit()
             return cursor.lastrowid
+
+    def update_reader(self, reader: Reader) -> bool:
+        """Update existing reader information."""
+        query = "UPDATE readers SET full_name = ?, phone = ?, is_active = ? WHERE id = ?"
+        params = (reader.full_name, reader.phone, reader.is_active, reader.id)
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_reader(self, reader_id: int) -> bool:
+        """Delete a reader from the database."""
+        query = "DELETE FROM readers WHERE id = ?"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (reader_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_all_readers(self) -> List[Reader]:
+        """Fetch all readers."""
+        query = "SELECT * FROM readers"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return [
+                Reader(
+                    id=row["id"],
+                    full_name=row["full_name"],
+                    phone=row["phone"],
+                    is_active=bool(row["is_active"])
+                ) for row in rows
+            ]
 
     def get_reader_by_id(self, reader_id: int) -> Optional[Reader]:
         query = "SELECT * FROM readers WHERE id = ?"

@@ -6,7 +6,7 @@ Provides specialized table models for displaying inventory data in PyQt5 widgets
 
 from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
 from typing import List
-from core.models.inventory import BookItem
+from core.models.inventory import BookItem, Reader
 from core.services.inventory_service import InventoryService
 
 
@@ -43,7 +43,15 @@ class InventoryTableModel(QAbstractTableModel):
         if col == 0:
             return item.inventory_number
         elif col == 1:
-            return item.status.value
+            # Translate status to Russian
+            status_map = {
+                "AVAILABLE": "Доступен",
+                "LOANED": "Выдан",
+                "LOST": "Утерян",
+                "REPAIR": "В ремонте",
+                "WRITTEN_OFF": "Списан"
+            }
+            return status_map.get(item.status.value, item.status.value)
         elif col == 2:
             return item.location if item.location else "Не указано"
         elif col == 3:
@@ -68,3 +76,56 @@ class InventoryTableModel(QAbstractTableModel):
         else:
             self._items = self._service.get_all_items()
         self.endResetModel()
+
+class ReaderTableModel(QAbstractTableModel):
+    """
+    PyQt5 Table Model for displaying library readers.
+    
+    Columns:
+        0: ID
+        1: Full Name
+        2: Phone
+        3: Status
+    """
+
+    def __init__(self, service: InventoryService, parent=None):
+        super().__init__(parent)
+        self._service = service
+        self._readers: List[Reader] = []
+        self._headers = ["ID", "ФИО", "Телефон", "Статус"]
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self._readers)
+
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self._headers)
+
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
+        if not index.isValid() or role != Qt.DisplayRole:
+            return None
+
+        reader = self._readers[index.row()]
+        col = index.column()
+
+        if col == 0:
+            return str(reader.id)
+        elif col == 1:
+            return reader.full_name
+        elif col == 2:
+            return reader.phone
+        elif col == 3:
+            return "Активен" if reader.is_active else "Неактивен"
+
+        return None
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> any:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.DisplayRole:
+            return self._headers[section]
+        return None
+
+    def refresh_data(self):
+        """Fetch fresh reader data."""
+        self.beginResetModel()
+        self._readers = self._service.get_all_readers()
+        self.endResetModel()
+

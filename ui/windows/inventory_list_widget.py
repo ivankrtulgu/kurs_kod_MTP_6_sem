@@ -22,7 +22,8 @@ class InventoryListWidget(QWidget):
         ItemStatus.AVAILABLE: "Доступен",
         ItemStatus.LOANED: "Выдан",
         ItemStatus.REPAIR: "В ремонте",
-        ItemStatus.LOST: "Утерян"
+        ItemStatus.LOST: "Утерян",
+        ItemStatus.WRITTEN_OFF: "Списан"
     }
 
     data_refreshed = pyqtSignal()
@@ -46,6 +47,9 @@ class InventoryListWidget(QWidget):
         self.tree.setAlternatingRowColors(True)
         self.tree.setAnimated(True)
 
+        # Handle double click to open card
+        self.tree.itemDoubleClicked.connect(self._on_item_double_clicked)
+
         # Refresh button
         self.btn_refresh = QPushButton("Обновить список")
         self.btn_refresh.clicked.connect(self.refresh_list)
@@ -55,6 +59,25 @@ class InventoryListWidget(QWidget):
         
         # Initial data load
         self.refresh_list()
+
+    def _on_item_double_clicked(self, item: QTreeWidgetItem):
+        """Handle double click on a tree item."""
+        # If it's a child item (a physical copy), open its card
+        if item.parent():
+            # We need to find the item_id. 
+            # Since we didn't store it in the node, we'll find it by inventory number.
+            inv_num = item.text(0).replace("Инв. № ", "").strip()
+            
+            # Notify MainWindow to open the card
+            # We assume the parent window is MainWindow
+            main_window = self.window()
+            if hasattr(main_window, '_open_book_item_card'):
+                # Find item_id from inv_num via service
+                try:
+                    item_obj = self._inventory_service._find_item_by_inv(inv_num)
+                    main_window._open_book_item_card(item_obj.id)
+                except Exception as e:
+                    print(f"Ошибка при открытии карточки: {e}")
 
     def refresh_list(self):
         """

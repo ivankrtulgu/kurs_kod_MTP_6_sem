@@ -32,11 +32,13 @@ class BookItem:
         book_id: Foreign key to Book.id.
         status: Current status of the item.
         location: Shelf/room location according to GOST R 7.0.93-2015.
+        qr_code_path: Path to the generated QR code image.
     """
     inventory_number: str
     book_id: int
     status: ItemStatus = ItemStatus.AVAILABLE
     location: str = ""
+    qr_code_path: Optional[str] = None
     id: int = 0
 
 
