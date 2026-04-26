@@ -192,9 +192,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item_id, 
             self._inventory_service, 
             self._book_service, 
-            self
+            self,
         )
         self.statusbar.showMessage("Карточка экземпляра открыта", 3000)
+
+    def open_item_card(self, inv_num: str):
+        """Open a book item card using its inventory number (used by scanner)."""
+        try:
+            item = self._inventory_service._repo.get_item_by_inventory_number(inv_num)
+            if item:
+                self._open_book_item_card(item.id)
+                self.statusbar.showMessage(f"Сканирован экземпляр №{inv_num}", 3000)
+            else:
+                QMessageBox.warning(self, "Сканер", f"Экземпляр №{inv_num} не найден в базе")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка сканера", f"Ошибка при открытии экземпляра: {e}")
+
+    def open_book_card(self, isbn: str):
+        """Open a book card using its ISBN (used by scanner)."""
+        try:
+            book = self._book_service.get_book_by_isbn(isbn)
+            if book:
+                # Use the same logic as _open_book_card but we have the object
+                from ui.windows.book_card_widget import BookCardWidget
+                widget = BookCardWidget(
+                    book_id=book.id,
+                    book_service=self._book_service
+                )
+                title = widget.get_book_title()
+                sub_window = self._create_sub_window(widget, title, 850, 650)
+                self.mdi_area.addSubWindow(sub_window)
+                sub_window.show()
+                self.statusbar.showMessage(f"Сканировано произведение {isbn}", 3000)
+            else:
+                QMessageBox.warning(self, "Сканер", f"Произведение с ISBN {isbn} не найдено")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка сканера", f"Ошибка при открытии книги: {e}")
 
     def _on_add_items_clicked(self):
         """Open the add items window as MDI child."""

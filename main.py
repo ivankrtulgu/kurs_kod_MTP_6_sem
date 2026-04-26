@@ -17,10 +17,12 @@ if os.path.exists(plugins_path):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugins_path
 
 from infrastructure.database.connection import DatabaseManager
+from infrastructure.database.book_repository import SQLiteBookRepository
 from infrastructure.database.inventory_repository import SQLiteInventoryRepository
 from core.services.book_service import BookService
 from core.services.inventory_service import InventoryService
 from ui.windows.main_window import MainWindow
+from ui.scanner_filter import BarcodeEventFilter
 
 
 def main():
@@ -37,24 +39,37 @@ def main():
     db_path = "library.db"
     db_manager = DatabaseManager(db_path)
     
-    # Initialize Repositories
+    # 2. Repository Layer
+    book_repo = SQLiteBookRepository(db_manager)
     inventory_repo = SQLiteInventoryRepository(db_manager)
-    # Note: BookRepository is usually instantiated inside BookService or passed here
-    # Based on current architecture, BookService often handles its own repo or takes one.
-
-    # 2. Service Layer
+    
+    # 3. Service Layer
     # Create services and inject repositories
-    book_service = BookService() 
+    book_service = BookService(db_manager) 
     inventory_service = InventoryService(inventory_repo)
 
-    # 3. UI Layer
+    # 4. UI Layer
     # Inject services into the Main Window
     window = MainWindow(
         book_service=book_service, 
         inventory_service=inventory_service
     )
+    
+    # 5. Global Scanner Integration
+    # Attach filter to window to prevent garbage collection
+    window.scanner_filter = BarcodeEventFilter(window)
+    app.installEventFilter(window.scanner_filter)
+    
+    # Connect scanner signals to MainWindow handlers
+    def handle_scan(scan_type, identifier):
+        if scan_type == "item":
+            window.open_item_card(identifier)
+        elif scan_type == "book":
+            window.open_book_card(identifier)
+            
+    window.scanner_filter.scan_detected.connect(handle_scan)
+    
     window.show()
-
     sys.exit(app.exec_())
 
 

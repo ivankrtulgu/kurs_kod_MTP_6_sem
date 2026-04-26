@@ -118,6 +118,17 @@ class SQLiteBookRepository(BookRepository):
                 return self._row_to_book(row)
             return None
 
+    def get_by_isbn(self, isbn: str) -> Optional[Book]:
+        """Get a book by its ISBN."""
+        query = "SELECT * FROM books WHERE isbn = ?"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (isbn,))
+            row = cursor.fetchone()
+            if row:
+                return self._row_to_book(row)
+            return None
+
     def get_all(self) -> list[Book]:
         """Get all books."""
         query = "SELECT * FROM books ORDER BY year DESC, title ASC"

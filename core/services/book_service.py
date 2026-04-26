@@ -173,18 +173,24 @@ class BookService:
         >>> book_id = service.add_book(book)
     """
 
-    def __init__(self, db_path: Optional[Path] = None) -> None:
+    def __init__(self, db_manager: Optional[DatabaseManager] = None, db_path: Optional[Path] = None) -> None:
         """
         Initialize book service.
 
         Args:
-            db_path: Optional custom database path. Uses settings default if None.
+            db_manager: Optional pre-initialized DatabaseManager.
+            db_path: Optional custom database path. Uses settings default if both are None.
         """
         settings.ensure_dirs()
-        database_path = db_path or settings.DATABASE_PATH
-        db_manager = DatabaseManager(database_path)
-        self._repository = SQLiteBookRepository(db_manager)
-        logger.info(f"BookService initialized with database: {database_path}")
+        
+        if db_manager:
+            manager = db_manager
+        else:
+            database_path = db_path or settings.DATABASE_PATH
+            manager = DatabaseManager(database_path)
+            
+        self._repository = SQLiteBookRepository(manager)
+        logger.info(f"BookService initialized.")
 
     def _validate_book(self, book: Book) -> None:
         """
@@ -441,4 +447,16 @@ class BookService:
             Book | None: Book object if found, None otherwise.
         """
         return self.get_book(book_id)
+
+    def get_book_by_isbn(self, isbn: str) -> Optional[Book]:
+        """
+        Get a book by its ISBN.
+        
+        Args:
+            isbn: ISBN string.
+            
+        Returns:
+            Book | None: Book object if found, None otherwise.
+        """
+        return self._repository.get_by_isbn(isbn)
 

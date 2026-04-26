@@ -66,8 +66,7 @@
      <string>menu_service</string>
     </property>
     <addaction name="action_ocr"/>
-    <addaction name="action_generate_qr"/>
-   </widget>
+    </widget>
    
    <!-- Menu: Справка -->
    <widget class="QMenu" name="menu_help">
@@ -104,9 +103,8 @@
    <addaction name="action_refresh"/>
    <addaction name="action_search"/>
    <addaction name="separator_toolbar"/>
-   <addaction name="action_ocr"/>
-   <addaction name="action_generate_qr"/>
-   <addaction name="action_export"/>
+    <addaction name="action_ocr"/>
+    <addaction name="action_export"/>
   </widget>
   
   <!-- Central Widget with MDI Area -->
@@ -160,20 +158,20 @@
    </property>
   </action>
   
-  <action name="action_refresh">
-   <property name="text">
-    <string>Обновить</string>
-   </property>
-   <property name="toolTip">
-    <string>Обновить список книг</string>
-   </property>
-   <property name="shortcut">
-    <string>F5</string>
-   </property>
-   <property name="objectName">
-    <string>action_refresh</string>
-   </property>
-  </action>
+   <action name="action_refresh">
+    <property name="text">
+     <string>Список произведений</string>
+    </property>
+    <property name="toolTip">
+     <string>Обновить список книг</string>
+    </property>
+    <property name="shortcut">
+     <string>F5</string>
+    </property>
+    <property name="objectName">
+     <string>action_refresh</string>
+    </property>
+   </action>
   
   <action name="action_search">
    <property name="text">
@@ -229,29 +227,17 @@
    </property>
   </action>
   
-  <action name="action_generate_qr">
-   <property name="text">
-    <string>QR-коды</string>
-   </property>
-   <property name="toolTip">
-    <string>Сгенерировать QR-коды для книг</string>
-   </property>
-   <property name="objectName">
-    <string>action_generate_qr</string>
-   </property>
-  </action>
-  
-  <action name="action_about">
-   <property name="text">
-    <string>О программе</string>
-   </property>
-   <property name="toolTip">
-    <string>Информация о приложении</string>
-   </property>
-   <property name="objectName">
-    <string>action_about</string>
-   </property>
-  </action>
+   <action name="action_about">
+    <property name="text">
+     <string>О программе</string>
+    </property>
+    <property name="toolTip">
+     <string>Информация о приложении</string>
+    </property>
+    <property name="objectName">
+     <string>action_about</string>
+    </property>
+   </action>
   
   <action name="separator_catalog">
    <property name="separator">
