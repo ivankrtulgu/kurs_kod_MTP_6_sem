@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'ui\forms\main_window.ui'
+# Form implementation generated from reading ui file 'D:\01\Тулгу\3 курс\6 семестр\MTP_Kurs\proj_lib\library_app\ui\forms\main_window.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -58,8 +58,6 @@ class Ui_MainWindow(object):
         self.action_export.setObjectName("action_export")
         self.action_ocr = QtWidgets.QAction(MainWindow)
         self.action_ocr.setObjectName("action_ocr")
-        self.action_generate_qr = QtWidgets.QAction(MainWindow)
-        self.action_generate_qr.setObjectName("action_generate_qr")
         self.action_about = QtWidgets.QAction(MainWindow)
         self.action_about.setObjectName("action_about")
         self.separator_catalog = QtWidgets.QAction(MainWindow)
@@ -75,7 +73,6 @@ class Ui_MainWindow(object):
         self.menu_catalog.addAction(self.separator_catalog)
         self.menu_catalog.addAction(self.action_export)
         self.menu_service.addAction(self.action_ocr)
-        self.menu_service.addAction(self.action_generate_qr)
         self.menu_help.addAction(self.action_about)
         self.menubar.addAction(self.menu_file.menuAction())
         self.menubar.addAction(self.menu_catalog.menuAction())
@@ -86,7 +83,6 @@ class Ui_MainWindow(object):
         self.toolbar_main.addAction(self.action_search)
         self.toolbar_main.addAction(self.separator_toolbar)
         self.toolbar_main.addAction(self.action_ocr)
-        self.toolbar_main.addAction(self.action_generate_qr)
         self.toolbar_main.addAction(self.action_export)
 
         self.retranslateUi(MainWindow)
@@ -103,7 +99,7 @@ class Ui_MainWindow(object):
         self.action_add_book.setText(_translate("MainWindow", "Добавить книгу"))
         self.action_add_book.setToolTip(_translate("MainWindow", "Добавить новую книгу в каталог"))
         self.action_add_book.setShortcut(_translate("MainWindow", "Ctrl+N"))
-        self.action_refresh.setText(_translate("MainWindow", "Обновить"))
+        self.action_refresh.setText(_translate("MainWindow", "Список произведений"))
         self.action_refresh.setToolTip(_translate("MainWindow", "Обновить список книг"))
         self.action_refresh.setShortcut(_translate("MainWindow", "F5"))
         self.action_search.setText(_translate("MainWindow", "Поиск"))
@@ -116,17 +112,5 @@ class Ui_MainWindow(object):
         self.action_export.setToolTip(_translate("MainWindow", "Экспортировать каталог"))
         self.action_ocr.setText(_translate("MainWindow", "OCR"))
         self.action_ocr.setToolTip(_translate("MainWindow", "Распознать текст с изображения"))
-        self.action_generate_qr.setText(_translate("MainWindow", "QR-коды"))
-        self.action_generate_qr.setToolTip(_translate("MainWindow", "Сгенерировать QR-коды для книг"))
         self.action_about.setText(_translate("MainWindow", "О программе"))
         self.action_about.setToolTip(_translate("MainWindow", "Информация о приложении"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())

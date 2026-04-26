@@ -129,7 +129,7 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
             parent_window = self.window()
             if hasattr(parent_window, 'mdi_area'):
                 # Open OCR in the main MDI area
-                ocr_widget = OcrWidget()
+                ocr_widget = OcrWindow()
                 
                 from PyQt5.QtWidgets import QMdiSubWindow
                 from PyQt5.QtCore import Qt

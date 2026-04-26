@@ -48,10 +48,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_refresh.triggered.connect(self._open_book_list)
         self.action_search.triggered.connect(self._open_search)
         self.action_export.triggered.connect(self._on_export)
-
+        
         # Клиенты
         self.act_show_readers.triggered.connect(self._on_show_readers)
-
+        
         # Инвентарь (Inventory)
         self.act_add_items.triggered.connect(self._on_add_items_clicked)
         self.act_show_inv.triggered.connect(self._on_show_inventory)
@@ -61,7 +61,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         # Сервис
         self.action_ocr.triggered.connect(self._on_ocr)
-        self.action_generate_qr.triggered.connect(self._on_generate_qr)
         
         # Файл
         self.action_exit.triggered.connect(self.close)
@@ -319,7 +318,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             # Use the unified singleton method
             self._open_mdi_subwindow(BookListWidget, book_service=self._book_service)
-            self.statusbar.showMessage("Список книг открыт", 3000)
+            self.statusbar.showMessage("Список произведений открыт", 3000)
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось открыть список книг: {e}")
 
