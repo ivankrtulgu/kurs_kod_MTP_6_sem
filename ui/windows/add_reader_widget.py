@@ -6,8 +6,9 @@ Provides a widget for adding and editing library readers in an MDI environment.
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QMessageBox, QFormLayout, QCheckBox
+    QLineEdit, QPushButton, QFormLayout, QCheckBox, QMessageBox
 )
+
 from PyQt5.QtCore import Qt
 from core.services.inventory_service import InventoryService
 from core.models.inventory import Reader
@@ -18,10 +19,11 @@ class AddReaderWidget(QWidget):
     Designed to be hosted within a QMdiSubWindow.
     """
 
-    def __init__(self, service: InventoryService, reader_id: int | None = None, parent=None):
+    def __init__(self, service: InventoryService, reader_id: int | None = None, main_window=None, parent=None):
         super().__init__(parent)
         self._service = service
         self._reader_id = reader_id
+        self._main_window = main_window
         
         self.setWindowTitle("Добавление читателя" if reader_id is None else "Редактирование читателя")
         self._init_ui()
@@ -55,7 +57,7 @@ class AddReaderWidget(QWidget):
         self.btn_save = QPushButton("Сохранить")
         self.btn_save.clicked.connect(self._handle_save)
         self.btn_close = QPushButton("Закрыть")
-        self.btn_close.clicked.connect(self.close)
+        self.btn_close.clicked.connect(self._close_window)
 
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_close)
@@ -71,7 +73,8 @@ class AddReaderWidget(QWidget):
                 self.phone_input.setText(reader.phone)
                 self.active_checkbox.setChecked(reader.is_active)
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные читателя: {e}")
+            if self._main_window:
+                self._main_window.notify(f"Не удалось загрузить данные читателя: {e}", "Ошибка", "error")
 
     def _handle_save(self):
         try:
@@ -80,7 +83,9 @@ class AddReaderWidget(QWidget):
             is_active = self.active_checkbox.isChecked()
 
             if not name or not phone:
-                raise ValueError("Поля ФИО и Телефон обязательны для заполнения")
+                if self._main_window:
+                    self._main_window.notify("Поля ФИО и Телефон обязательны для заполнения", "Ошибка ввода", "warning")
+                return
 
             if self._reader_id:
                 # Update
@@ -100,11 +105,19 @@ class AddReaderWidget(QWidget):
                     is_active=is_active
                 )
                 self._service.add_reader(reader)
-                QMessageBox.information(self, "Успех", "Читатель успешно добавлен")
+                QMessageBox.information(self, "Успех", "Читатель добавлен")
             
-            self.close()
+            self._close_window()
 
-        except ValueError as e:
-            QMessageBox.critical(self, "Ошибка ввода", str(e))
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка системы", f"Ошибка при сохранении: {e}")
+            if self._main_window:
+                self._main_window.notify(f"Ошибка при сохранении: {e}", "Ошибка системы", "error")
+
+    def _close_window(self):
+        """Close the MDI subwindow containing this widget."""
+        from PyQt5.QtWidgets import QMdiSubWindow
+        parent = self.parent()
+        if isinstance(parent, QMdiSubWindow):
+            parent.close()
+        else:
+            self.close()

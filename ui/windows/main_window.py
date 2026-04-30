@@ -76,7 +76,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusbar.showMessage(f"Ошибка: {e}", 5000)
 
+    def notify(self, message: str, title: str = "System", msg_type: str = "info", timeout: int = 5000):
+        """
+        Simple non-blocking notification using the status bar.
+        """
+        full_message = f"[{title}] {message}" if title else message
+        self.statusbar.showMessage(full_message, timeout)
+
     def _setup_inventory_toolbar(self):
+
         """Add inventory and client management actions to the toolbar."""
         from PyQt5.QtGui import QIcon
         from PyQt5.QtWidgets import QAction, QToolBar
