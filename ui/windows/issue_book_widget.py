@@ -6,10 +6,11 @@ Provides a widget for issuing a physical book copy to a reader within an MDI env
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QSpinBox, QPushButton, QMessageBox, QFormLayout
+    QLineEdit, QSpinBox, QPushButton, QMessageBox, QFormLayout, QGroupBox
 )
 from PyQt5.QtCore import Qt
 from core.services.inventory_service import InventoryService
+from ui.style_manager import StyleManager
 
 class IssueBookWidget(QWidget):
     """
@@ -20,15 +21,27 @@ class IssueBookWidget(QWidget):
     def __init__(self, service: InventoryService, parent=None):
         super().__init__(parent)
         self._service = service
+        
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
         self.setWindowTitle("Выдача экземпляра")
         self._init_ui()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        form = QFormLayout()
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Main form group
+        form_group = QGroupBox(" Данные выдачи")
+        form_layout = QFormLayout(form_group)
+        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(10, 10, 10, 10)
 
         # Reader selection row
         reader_layout = QHBoxLayout()
+        reader_layout.setSpacing(10)
         self.reader_id_input = QLineEdit()
         self.reader_id_input.setPlaceholderText("ID читателя")
         self.reader_id_input.setFixedWidth(100)
@@ -46,23 +59,24 @@ class IssueBookWidget(QWidget):
         reader_layout.addWidget(self.lbl_reader_name)
         reader_layout.addWidget(self.btn_select_reader)
         reader_layout.addWidget(self.btn_clear_reader)
-        form.addRow("Читатель:", reader_layout)
+        form_layout.addRow("Читатель:", reader_layout)
 
         # Inventory Number input
         self.inv_num_input = QLineEdit()
         self.inv_num_input.setPlaceholderText("Например: 1001")
-        form.addRow("Инв. № экземпляра:", self.inv_num_input)
+        form_layout.addRow("Инв. № экземпляра:", self.inv_num_input)
 
         # Loan period input
         self.days_input = QSpinBox()
         self.days_input.setRange(1, 365)
         self.days_input.setValue(14)
-        form.addRow("Срок выдачи (дней):", self.days_input)
+        form_layout.addRow("Срок выдачи (дней):", self.days_input)
 
-        layout.addLayout(form)
+        layout.addWidget(form_group)
 
         # Buttons
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
         self.btn_confirm = QPushButton("Выдать")
         self.btn_confirm.clicked.connect(self._handle_confirm)
         self.btn_close = QPushButton("Закрыть")

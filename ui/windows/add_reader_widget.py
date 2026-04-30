@@ -6,12 +6,13 @@ Provides a widget for adding and editing library readers in an MDI environment.
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFormLayout, QComboBox, QTextEdit, QMessageBox
+    QLineEdit, QPushButton, QFormLayout, QComboBox, QTextEdit, QMessageBox, QGroupBox
 )
 
 from PyQt5.QtCore import Qt
 from core.services.inventory_service import InventoryService
 from core.models.inventory import Reader
+from ui.style_manager import StyleManager
 
 class AddReaderWidget(QWidget):
     """
@@ -25,6 +26,9 @@ class AddReaderWidget(QWidget):
         self._reader_id = reader_id
         self._main_window = main_window
         
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
         self.setWindowTitle("Добавление читателя" if reader_id is None else "Редактирование читателя")
         self._init_ui()
         
@@ -33,65 +37,73 @@ class AddReaderWidget(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        form = QFormLayout()
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Main form group
+        form_group = QGroupBox(" Данные читателя")
+        form_layout = QFormLayout(form_group)
+        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(10, 10, 10, 10)
 
         # Name fields
         self.last_name_input = QLineEdit()
         self.last_name_input.setPlaceholderText("Введите фамилию")
-        form.addRow("Фамилия*:", self.last_name_input)
+        form_layout.addRow("Фамилия*:", self.last_name_input)
 
         self.first_name_input = QLineEdit()
         self.first_name_input.setPlaceholderText("Введите имя")
-        form.addRow("Имя*:", self.first_name_input)
+        form_layout.addRow("Имя*:", self.first_name_input)
 
         self.middle_name_input = QLineEdit()
         self.middle_name_input.setPlaceholderText("Введите отчество")
-        form.addRow("Отчество:", self.middle_name_input)
+        form_layout.addRow("Отчество:", self.middle_name_input)
 
         # Contact info
         self.phone_input = QLineEdit()
         self.phone_input.setPlaceholderText("Введите номер телефона")
-        form.addRow("Телефон:", self.phone_input)
+        form_layout.addRow("Телефон:", self.phone_input)
 
         self.email_input = QLineEdit()
         self.email_input.setPlaceholderText("example@mail.com")
-        form.addRow("Email:", self.email_input)
+        form_layout.addRow("Email:", self.email_input)
 
         # Personal details
         self.birth_date_input = QLineEdit()
         self.birth_date_input.setPlaceholderText("ГГГГ-ММ-ДД")
-        form.addRow("Дата рождения:", self.birth_date_input)
+        form_layout.addRow("Дата рождения:", self.birth_date_input)
 
         self.passport_series_input = QLineEdit()
         self.passport_series_input.setPlaceholderText("Серия")
-        form.addRow("Серия паспорта:", self.passport_series_input)
+        form_layout.addRow("Серия паспорта:", self.passport_series_input)
 
         self.passport_number_input = QLineEdit()
         self.passport_number_input.setPlaceholderText("Номер")
-        form.addRow("Номер паспорта:", self.passport_number_input)
+        form_layout.addRow("Номер паспорта:", self.passport_number_input)
 
         self.address_input = QLineEdit()
         self.address_input.setPlaceholderText("Улица, дом, квартира")
-        form.addRow("Адрес проживания:", self.address_input)
+        form_layout.addRow("Адрес проживания:", self.address_input)
 
         self.reg_date_input = QLineEdit()
         self.reg_date_input.setPlaceholderText("ГГГГ-ММ-ДД")
-        form.addRow("Дата регистрации:", self.reg_date_input)
+        form_layout.addRow("Дата регистрации:", self.reg_date_input)
 
         # Status
         self.status_combo = QComboBox()
         self.status_combo.addItems(["active", "blocked", "expired"])
-        form.addRow("Статус:", self.status_combo)
+        form_layout.addRow("Статус:", self.status_combo)
 
         # Notes
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(100)
-        form.addRow("Заметки:", self.notes_input)
+        form_layout.addRow("Заметки:", self.notes_input)
 
-        layout.addLayout(form)
+        layout.addWidget(form_group)
 
         # Buttons
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
         self.btn_save = QPushButton("Сохранить")
         self.btn_save.clicked.connect(self._handle_save)
         self.btn_close = QPushButton("Закрыть")

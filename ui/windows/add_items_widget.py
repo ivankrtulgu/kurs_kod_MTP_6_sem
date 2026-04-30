@@ -7,12 +7,12 @@ designed to be hosted within an MDI subwindow.
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QSpinBox, QPushButton, QMessageBox, QFormLayout
+    QLineEdit, QSpinBox, QPushButton, QMessageBox, QFormLayout, QGroupBox
 )
 from PyQt5.QtCore import Qt, QVariant, pyqtSignal
 from core.services.book_service import BookService
 from core.services.inventory_service import InventoryService
-
+from ui.style_manager import StyleManager
 
 class AddItemsWidget(QWidget):
     """
@@ -27,11 +27,22 @@ class AddItemsWidget(QWidget):
         super().__init__(parent)
         self._book_service = book_service
         self._inventory_service = inventory_service
+        
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
         self._init_ui()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        form = QFormLayout()
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Main form group
+        form_group = QGroupBox(" Данные добавления")
+        form_layout = QFormLayout(form_group)
+        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(10, 10, 10, 10)
 
         # Book selection
         self.book_info_edit = QLineEdit()
@@ -45,31 +56,33 @@ class AddItemsWidget(QWidget):
         self.btn_clear_book.clicked.connect(self._on_clear_book)
         
         book_layout = QHBoxLayout()
+        book_layout.setSpacing(10)
         book_layout.addWidget(self.book_info_edit)
         book_layout.addWidget(self.btn_select_book)
         book_layout.addWidget(self.btn_clear_book)
-        form.addRow("Произведение:", book_layout)
+        form_layout.addRow("Произведение:", book_layout)
 
         # Location input
         self.location_input = QLineEdit()
         self.location_input.setPlaceholderText("Напр: ЗАЛ-1-ПОЛКА-5")
-        form.addRow("Местоположение:", self.location_input)
+        form_layout.addRow("Местоположение:", self.location_input)
 
         # Quantity input
         self.count_input = QSpinBox()
         self.count_input.setRange(1, 1000)
         self.count_input.setValue(1)
-        form.addRow("Количество экземпляров:", self.count_input)
+        form_layout.addRow("Количество экземпляров:", self.count_input)
 
         # Starting inventory number (Optional)
         self.start_inv_input = QLineEdit()
         self.start_inv_input.setPlaceholderText("Оставить пустым для автонумерации")
-        form.addRow("Начать с № (опц.):", self.start_inv_input)
+        form_layout.addRow("Начать с № (опц.):", self.start_inv_input)
 
-        layout.addLayout(form)
+        layout.addWidget(form_group)
 
         # Buttons
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
         self.btn_confirm = QPushButton("Добавить")
         self.btn_confirm.clicked.connect(self._handle_confirm)
         

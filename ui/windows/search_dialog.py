@@ -1,10 +1,11 @@
 # ui/windows/search_dialog.py
 """Search dialog with repository integration."""
 
-from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox, QLabel, QLineEdit, QGridLayout, QScrollArea, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QWidget
+from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox, QLabel, QLineEdit, QGridLayout, QScrollArea, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QWidget, QGroupBox
 from PyQt5.QtCore import Qt
 import csv
 from ui.generated.ui_search_dialog import Ui_SearchDialog
+from ui.style_manager import StyleManager
 
 from core.services.book_service import BookService
 from core.models.book import Book
@@ -25,6 +26,12 @@ class SearchDialog(QDialog, Ui_SearchDialog):
     def __init__(self, parent=None, book_service: BookService | None = None):
         super().__init__(parent)
         self.setupUi(self)
+        self.setStyleSheet(StyleManager.get_stylesheet())
+
+        # Standardize main layout
+        if self.verticalLayout:
+            self.verticalLayout.setSpacing(10)
+            self.verticalLayout.setContentsMargins(10, 10, 10, 10)
         
         # Inject service
         self._book_service = book_service or BookService()
@@ -45,6 +52,8 @@ class SearchDialog(QDialog, Ui_SearchDialog):
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
         main_layout = QVBoxLayout(scroll_content)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         
         groups = {
             "Обязательные поля": [
@@ -76,9 +85,9 @@ class SearchDialog(QDialog, Ui_SearchDialog):
         }
         
         for group_name, fields in groups.items():
-            group_box = QVBoxLayout()
-            header = QLabel(f"<b>{group_name}</b>")
-            group_box.addWidget(header)
+            group_box = QGroupBox(group_name)
+            group_layout = QVBoxLayout(group_box)
+            group_layout.setSpacing(10)
             
             grid = QGridLayout()
             for i, (label_text, field_name, field_type) in enumerate(fields):
@@ -99,8 +108,8 @@ class SearchDialog(QDialog, Ui_SearchDialog):
                     grid.addWidget(line_edit, i, 1, 1, 2)
                     self.search_inputs[field_name] = line_edit
             
-            group_box.addLayout(grid)
-            main_layout.addLayout(group_box)
+            group_layout.addLayout(grid)
+            main_layout.addWidget(group_box)
         
         scroll.setWidget(scroll_content)
         

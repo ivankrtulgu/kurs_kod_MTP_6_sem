@@ -13,6 +13,7 @@ from ui.windows.add_book_widget import AddBookWidget
 from ui.windows.search_widget import SearchWidget
 from ui.windows.about_widget import AboutWidget
 from ui.windows.ocr_window import OcrWindow
+from ui.style_manager import StyleManager
 
 class ManagedMdiSubWindow(QMdiSubWindow):
     """MDI SubWindow that can trigger callbacks upon closing."""
@@ -41,6 +42,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None, book_service: BookService | None = None, inventory_service: Any | None = None):
         super().__init__(parent)
         self.setupUi(self)
+        self.setStyleSheet(StyleManager.get_stylesheet())
+
+        # Standardize main layout
+        self.verticalLayout.setSpacing(10)
+        self.verticalLayout.setContentsMargins(10, 10, 10, 10)
 
         # Inject services (dependency injection)
         self._book_service = book_service or BookService()

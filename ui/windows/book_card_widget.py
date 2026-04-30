@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QImage
 from pathlib import Path
 from ui.generated.ui_book_card_widget import Ui_BookCardWidget
+from ui.style_manager import StyleManager
 
 from core.services.book_service import BookService
 from core.models.book import Book
@@ -23,6 +24,18 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
     ):
         super().__init__(parent)
         self.setupUi(self)
+        
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
+        # Update layouts
+        if hasattr(self, 'verticalLayout'):
+            self.verticalLayout.setSpacing(10)
+            self.verticalLayout.setContentsMargins(10, 10, 10, 10)
+        if hasattr(self, 'horizontalLayout_header'):
+            self.horizontalLayout_header.setSpacing(10)
+        if hasattr(self, 'horizontalLayout_actions'):
+            self.horizontalLayout_actions.setSpacing(10)
         
         # Inject service
         self._book_service = book_service or BookService()

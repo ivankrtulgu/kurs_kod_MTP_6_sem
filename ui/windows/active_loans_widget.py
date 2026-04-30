@@ -4,11 +4,12 @@ Active Loans Widget module.
 Provides a table view of all currently active book loans in the library.
 """
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableView, QComboBox, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableView, QComboBox, QLabel, QGroupBox
 from PyQt5.QtCore import pyqtSignal
 from typing import Any
 from ui.models import ActiveLoansTableModel
 from core.services.inventory_service import InventoryService
+from ui.style_manager import StyleManager
 
 class ActiveLoansWidget(QWidget):
     """
@@ -22,13 +23,21 @@ class ActiveLoansWidget(QWidget):
         super().__init__(parent)
         self._inventory_service = inventory_service
         self._book_service = book_service
+        
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
         self._init_ui()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # Filter area
-        filter_layout = QHBoxLayout()
+        filter_group = QGroupBox("Фильтрация")
+        filter_layout = QHBoxLayout(filter_group)
+        filter_layout.setSpacing(10)
         
         filter_label = QLabel("Фильтр:")
         self.combo_filter = QComboBox()
@@ -53,7 +62,7 @@ class ActiveLoansWidget(QWidget):
         self.btn_refresh = QPushButton("Обновить список")
         self.btn_refresh.clicked.connect(self.refresh_list)
 
-        layout.addLayout(filter_layout)
+        layout.addWidget(filter_group)
         layout.addWidget(self.table_view)
         layout.addWidget(self.btn_refresh)
         

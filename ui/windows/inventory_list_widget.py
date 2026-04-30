@@ -10,6 +10,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from core.services.inventory_service import InventoryService
 from core.services.book_service import BookService
 from core.models.inventory import ItemStatus
+from ui.style_manager import StyleManager
 
 class InventoryListWidget(QWidget):
     """
@@ -32,10 +33,16 @@ class InventoryListWidget(QWidget):
         super().__init__(parent)
         self._inventory_service = inventory_service
         self._book_service = book_service
+        
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
         self._init_ui()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # Tree setup
         self.tree = QTreeWidget()
@@ -123,7 +130,6 @@ class InventoryListWidget(QWidget):
                     item_node.setText(1, status_text)
                     
                     item_node.setText(2, item.location if item.location else "Не указано")
-
             self.data_refreshed.emit()
             
         except Exception as e:

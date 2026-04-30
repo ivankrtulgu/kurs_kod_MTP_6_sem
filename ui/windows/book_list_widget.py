@@ -1,11 +1,12 @@
 # ui/windows/book_list_widget.py
 """Book list widget with repository integration."""
 
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow, QLabel, QLineEdit, QGridLayout, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QMdiSubWindow, QLabel, QLineEdit, QGridLayout, QPushButton, QFileDialog, QGroupBox, QVBoxLayout
 from PyQt5.QtCore import pyqtSignal, Qt
 import csv
 import logging
 from ui.generated.ui_book_list_widget import Ui_BookListWidget
+from ui.style_manager import StyleManager
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,11 @@ class BookListWidget(QWidget, Ui_BookListWidget):
     ):
         super().__init__(parent)
         self.setupUi(self)
+        
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        self.verticalLayout.setSpacing(10)
+        self.verticalLayout.setContentsMargins(10, 10, 10, 10)
 
         # Mode: if True, double-click selects a book instead of opening its card
         self.selection_mode = False
@@ -46,6 +52,7 @@ class BookListWidget(QWidget, Ui_BookListWidget):
 
         # Programmatic search fields for GOST R 7.0.4-2020
         self.search_fields_layout = QGridLayout()
+        self.search_fields_layout.setSpacing(10)
         self.search_inputs = {}
         
         search_fields = [
@@ -82,12 +89,23 @@ class BookListWidget(QWidget, Ui_BookListWidget):
             
             current_row += 1
 
-        # Remove old single search input from layout
+        # Organize search into a GroupBox
+        search_group = QGroupBox(" Поиск и фильтрация")
+        search_group_layout = QVBoxLayout(search_group)
+        search_group_layout.setSpacing(10)
+        search_group_layout.setContentsMargins(10, 10, 10, 10)
+        
+        search_group_layout.addLayout(self.search_fields_layout)
+        
+        # Update existing search buttons layout
+        self.horizontalLayout_search.setSpacing(10)
         self.horizontalLayout_search.removeWidget(self.input_search)
         self.input_search.setParent(None)
+        search_group_layout.addLayout(self.horizontalLayout_search)
         
-        # Insert the new search grid layout before the table
-        self.verticalLayout.insertLayout(1, self.search_fields_layout)
+        # Replace original search layout with the group
+        # The layout is now a child of search_group, so we just insert the group.
+        self.verticalLayout.insertWidget(0, search_group)
 
         # Store all books and filtered results
         self._all_books: list[Book] = []

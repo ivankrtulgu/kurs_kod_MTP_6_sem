@@ -7,7 +7,7 @@ Mirrors the design of the BookCardWidget.
 
 from PyQt5.QtWidgets import (
     QWidget, QMessageBox, QFileDialog, QVBoxLayout, QHBoxLayout, 
-    QLabel, QPushButton, QFrame, QGridLayout, QInputDialog, QLineEdit
+    QLabel, QPushButton, QFrame, QGridLayout, QInputDialog, QLineEdit, QGroupBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QImage
@@ -19,6 +19,7 @@ import string
 from core.services.inventory_service import InventoryService
 from core.services.book_service import BookService
 from core.models.inventory import BookItem, ItemStatus
+from ui.style_manager import StyleManager
 
 class BookItemCardWidget(QWidget):
     """
@@ -41,6 +42,9 @@ class BookItemCardWidget(QWidget):
         self._book_service = book_service
         self._main_window = main_window
         
+        # Apply Eco-Style
+        self.setStyleSheet(StyleManager.get_stylesheet())
+        
         self._item: BookItem | None = None
         
         self.setWindowTitle(f"Карточка экземпляра #{item_id}")
@@ -50,34 +54,34 @@ class BookItemCardWidget(QWidget):
     def _init_ui(self):
         """Replicates the BookCardWidget layout manually."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
 
         # --- Top Header Area ---
-        header_frame = QFrame()
-        header_frame.setFrameShape(QFrame.StyledPanel)
-        header_frame.setStyleSheet("background-color: #f8f9fa; border-radius: 10px; padding: 10px;")
-        header_layout = QHBoxLayout(header_frame)
+        header_group = QGroupBox(" Основная информация")
+        header_layout = QHBoxLayout(header_group)
+        header_layout.setSpacing(10)
         
         self.lbl_inv_num = QLabel("Инв. №: ---")
-        self.lbl_inv_num.setStyleSheet("font-size: 22pt; font-weight: bold; color: #2c3e50;")
+        self.lbl_inv_num.setStyleSheet("font-size: 18pt; font-weight: bold; color: #2c3e50;")
         
         self.lbl_status = QLabel("Статус: ---")
-        self.lbl_status.setStyleSheet("font-size: 14pt; font-weight: normal; color: #7f8c8d;")
+        self.lbl_status.setStyleSheet("font-size: 12pt; color: #7f8c8d;")
         
         header_layout.addWidget(self.lbl_inv_num)
         header_layout.addStretch()
         header_layout.addWidget(self.lbl_status)
         
-        main_layout.addWidget(header_frame)
+        main_layout.addWidget(header_group)
 
         # --- Main Content Area ---
         content_layout = QHBoxLayout()
+        content_layout.setSpacing(10)
         
         # Left Column: Details
-        details_container = QWidget()
-        details_layout = QVBoxLayout(details_container)
-        details_layout.setContentsMargins(0, 0, 0, 0)
+        details_group = QGroupBox(" Сведения о книге")
+        details_layout = QVBoxLayout(details_group)
+        details_layout.setContentsMargins(10, 10, 10, 10)
         
         grid = QGridLayout()
         grid.setSpacing(10)
@@ -105,6 +109,7 @@ class BookItemCardWidget(QWidget):
         loc_container = QWidget()
         loc_layout = QHBoxLayout(loc_container)
         loc_layout.setContentsMargins(0, 0, 0, 0)
+        loc_layout.setSpacing(8)
         
         self.edit_location = QLineEdit()
         self.edit_location.setPlaceholderText("Введите местоположение...")
@@ -121,26 +126,28 @@ class BookItemCardWidget(QWidget):
         details_layout.addLayout(grid)
         details_layout.addStretch()
         
-        content_layout.addWidget(details_container, 2)
+        content_layout.addWidget(details_group, 2)
 
-        # Right Column: QR Display (Like BookCardWidget)
-        qr_container = QFrame()
-        qr_container.setFixedSize(200, 200)
-        qr_container.setStyleSheet("border: 1px solid #bdc3c7; background-color: white;")
-        qr_layout = QVBoxLayout(qr_container)
+        # Right Column: QR Display
+        qr_group = QGroupBox(" QR-код")
+        qr_layout = QVBoxLayout(qr_group)
+        qr_layout.setContentsMargins(10, 10, 10, 10)
         
         self.label_qr = QLabel("QR-код\nне сгенерирован")
         self.label_qr.setAlignment(Qt.AlignCenter)
         self.label_qr.setWordWrap(True)
+        self.label_qr.setMinimumSize(200, 200)
         qr_layout.addWidget(self.label_qr)
         
-        content_layout.addWidget(qr_container, 1)
+        content_layout.addWidget(qr_group, 1)
         
         main_layout.addLayout(content_layout)
 
         # --- Bottom Action Area ---
-        actions_frame = QFrame()
-        actions_layout = QHBoxLayout(actions_frame)
+        actions_group = QGroupBox(" Действия")
+        actions_layout = QHBoxLayout(actions_group)
+        actions_layout.setContentsMargins(10, 10, 10, 10)
+        actions_layout.setSpacing(10)
         
         self.btn_qr = QPushButton("Сгенерировать QR")
         self.btn_qr.setMinimumHeight(40)
@@ -149,7 +156,7 @@ class BookItemCardWidget(QWidget):
         self.btn_change_status = QPushButton("Изменить статус")
         self.btn_change_status.setMinimumHeight(40)
         self.btn_change_status.clicked.connect(self._on_change_status)
-
+        
         self.btn_issue = QPushButton("Оформить выдачу")
         self.btn_issue.setMinimumHeight(40)
         self.btn_issue.clicked.connect(self._on_issue)
@@ -164,7 +171,7 @@ class BookItemCardWidget(QWidget):
         actions_layout.addWidget(self.btn_issue)
         actions_layout.addWidget(self.btn_return)
         
-        main_layout.addWidget(actions_frame)
+        main_layout.addWidget(actions_group)
         main_layout.addStretch()
 
     def _load_item(self):

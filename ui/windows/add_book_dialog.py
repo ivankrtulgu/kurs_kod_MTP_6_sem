@@ -1,8 +1,9 @@
 # ui/windows/add_book_dialog.py
 """Add book dialog with validation and service integration."""
 
-from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog
+from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog, QGroupBox, QVBoxLayout, QFormLayout
 from ui.generated.ui_add_book_dialog import Ui_AddBookDialog
+from ui.style_manager import StyleManager
 
 from core.models.book import Book
 from core.services.book_service import BookService, ValidationError
@@ -21,11 +22,19 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
     ):
         super().__init__(parent)
         self.setupUi(self)
+        self.setStyleSheet(StyleManager.get_stylesheet())
+
+        # Standardize main layout
+        if self.verticalLayout:
+            self.verticalLayout.setSpacing(10)
+            self.verticalLayout.setContentsMargins(10, 10, 10, 10)
         
         # Inject service
         self._book_service = book_service or BookService()
         self._ocr_data = ocr_data or {}
         self._book_id = book_id  # Store book_id for edit mode
+        
+        self._setup_eco_tabs()
         
         # Set window title based on mode
         if self._book_id:
@@ -46,6 +55,54 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         # If in edit mode, load book data for pre-filling
         if self._book_id:
             self._load_book_for_edit()
+
+    def _setup_eco_tabs(self):
+        """Wrap tab contents in QGroupBoxes to match Eco-Style design."""
+        # For tab_main
+        self.main_group = QGroupBox("Основные данные")
+        self.main_group_layout = QVBoxLayout(self.main_group)
+        self.main_group_layout.setSpacing(10)
+        
+        for i in range(self.formLayout_main.rowCount()):
+            label = self.formLayout_main.itemAt(i, QFormLayout.LabelRole).widget()
+            field = self.formLayout_main.itemAt(i, QFormLayout.FieldRole).widget()
+            if label: self.main_group_layout.addWidget(label)
+            if field: self.main_group_layout.addWidget(field)
+        
+        self.tab_main.setLayout(QVBoxLayout())
+        self.tab_main.layout().setContentsMargins(10, 10, 10, 10)
+        self.tab_main.layout().addWidget(self.main_group)
+
+        # For tab_classification
+        self.class_group = QGroupBox("Классификация")
+        self.class_group_layout = QVBoxLayout(self.class_group)
+        self.class_group_layout.setSpacing(10)
+        
+        for i in range(self.formLayout_classification.rowCount()):
+            label = self.formLayout_classification.itemAt(i, QFormLayout.LabelRole).widget()
+            field = self.formLayout_classification.itemAt(i, QFormLayout.FieldRole).widget()
+            if label: self.class_group_layout.addWidget(label)
+            if field: self.class_group_layout.addWidget(field)
+            
+        self.tab_classification.setLayout(QVBoxLayout())
+        self.tab_classification.layout().setContentsMargins(10, 10, 10, 10)
+        self.tab_classification.layout().addWidget(self.class_group)
+
+        # For tab_additional
+        self.additional_group = QGroupBox("Дополнительная информация")
+        self.additional_group_layout = QVBoxLayout(self.additional_group)
+        self.additional_group_layout.setSpacing(10)
+        
+        while self.verticalLayout_additional.count():
+            item = self.verticalLayout_additional.takeAt(0)
+            if item.widget():
+                self.additional_group_layout.addWidget(item.widget())
+            elif item.layout():
+                self.additional_group_layout.addLayout(item.layout())
+        
+        self.tab_additional.setLayout(QVBoxLayout())
+        self.tab_additional.layout().setContentsMargins(10, 10, 10, 10)
+        self.tab_additional.layout().addWidget(self.additional_group)
 
     def _connect_signals(self):
         """Connect button signals."""

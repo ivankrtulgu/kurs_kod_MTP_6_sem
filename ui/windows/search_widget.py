@@ -1,10 +1,11 @@
 # ui/windows/search_widget.py
 """Search widget with repository integration - for MDI child window."""
 
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QLabel, QLineEdit, QGridLayout, QScrollArea, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox, QLabel, QLineEdit, QGridLayout, QScrollArea, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QGroupBox
 from PyQt5.QtCore import pyqtSignal, Qt
 import csv
 from ui.generated.ui_search_dialog import Ui_SearchDialog
+from ui.style_manager import StyleManager
 
 from core.services.book_service import BookService
 from core.models.book import Book
@@ -28,6 +29,12 @@ class SearchWidget(QWidget, Ui_SearchDialog):
     def __init__(self, parent=None, book_service: BookService | None = None):
         super().__init__(parent)
         self.setupUi(self)
+        self.setStyleSheet(StyleManager.get_stylesheet())
+
+        # Standardize main layout
+        if self.layout():
+            self.layout().setSpacing(10)
+            self.layout().setContentsMargins(10, 10, 10, 10)
         
         # Inject service
         self._book_service = book_service or BookService()
@@ -39,8 +46,8 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         self.search_inputs = {}
         self._setup_advanced_search_ui()
         
-        # Change close button to close the widget
-        self.btn_close.clicked.connect(self.close)
+        # Hide close button as it is redundant/malfunctioning
+        self.btn_close.hide()
         
         self._connect_signals()
         self._setup_table()
@@ -50,8 +57,11 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         # Create a scroll area for the search fields to prevent window overflow
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setMaximumHeight(250) # Limit height to save space for the table
         scroll_content = QWidget()
         main_layout = QVBoxLayout(scroll_content)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         
         # Define fields by category
         groups = {
@@ -84,9 +94,9 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         }
         
         for group_name, fields in groups.items():
-            group_box = QVBoxLayout()
-            header = QLabel(f"<b>{group_name}</b>")
-            group_box.addWidget(header)
+            group_box = QGroupBox(group_name)
+            group_layout = QVBoxLayout(group_box)
+            group_layout.setSpacing(10)
             
             grid = QGridLayout()
             for i, (label_text, field_name, field_type) in enumerate(fields):
@@ -107,33 +117,31 @@ class SearchWidget(QWidget, Ui_SearchDialog):
                     grid.addWidget(line_edit, i, 1, 1, 2)
                     self.search_inputs[field_name] = line_edit
             
-            group_box.addLayout(grid)
-            main_layout.addLayout(group_box)
+            group_layout.addLayout(grid)
+            main_layout.addWidget(group_box)
         
         scroll.setWidget(scroll_content)
         
         # Replace the existing groupBox_search layout with our scroll area
-        # Since groupBox_search is a QGroupBox, we can set its layout
         if self.groupBox_search.layout():
-            # This is a bit hacky but necessary for generated UI
-            import shutil
-            # We can't easily remove a layout, so we just add the scroll area
-            # and hide the generated inputs
+            # Hide original inputs
             self.input_search_author.hide()
             self.input_search_title.hide()
             self.input_search_isbn.hide()
             self.input_search_udc.hide()
             
-        # Instead of trying to replace layout in a generated QGroupBox, 
-        # let's just place the scroll area over it or replace the groupbox in the main layout
-        # The generated UI layout is likely a vertical layout
+        # Place the scroll area in the main layout, replacing the groupBox_search
         parent_layout = self.layout()
         if parent_layout:
-            # Find index of groupBox_search and insert scroll area
             idx = parent_layout.indexOf(self.groupBox_search)
             if idx != -1:
                 parent_layout.insertWidget(idx, scroll)
                 self.groupBox_search.hide()
+                # Set stretch to give more space to results table
+                parent_layout.setStretch(idx, 0)
+                results_idx = parent_layout.indexOf(self.groupBox_results)
+                if results_idx != -1:
+                    parent_layout.setStretch(results_idx, 1)
 
     def _connect_signals(self):
         """Connect button signals."""
@@ -151,8 +159,8 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         self.btn_export_txt = QPushButton("Экспорт в TXT")
         self.btn_export_txt.clicked.connect(self._on_export_txt)
         
-        # Add buttons to the button area (near btn_search)
-        btn_layout = self.btn_search.parentWidget().layout()
+        # Add buttons to the horizontal button layout
+        btn_layout = self.horizontalLayout_buttons
         if btn_layout:
             btn_layout.addWidget(self.btn_import)
             btn_layout.addWidget(self.btn_export_csv)
@@ -451,7 +459,7 @@ class SearchWidget(QWidget, Ui_SearchDialog):
                             self._book_service.add_book(book)
                             imported_count += 1
                         except Exception as e:
-                            logger.error(f"Error importing row {row_idx}: {e}")
+                            print(f"Error importing row {row_idx}: {e}")
                             error_count += 1
                     
                     success = True
