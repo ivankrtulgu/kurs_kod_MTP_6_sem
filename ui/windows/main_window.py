@@ -4,6 +4,15 @@
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QMdiSubWindow, QMdiArea
 from PyQt5.QtCore import Qt
 from typing import Any, Callable
+from ui.generated.ui_main_window import Ui_MainWindow
+
+from core.services.book_service import BookService
+from ui.windows.book_list_widget import BookListWidget
+from ui.windows.book_card_widget import BookCardWidget
+from ui.windows.add_book_widget import AddBookWidget
+from ui.windows.search_widget import SearchWidget
+from ui.windows.about_widget import AboutWidget
+from ui.windows.ocr_window import OcrWindow
 
 class ManagedMdiSubWindow(QMdiSubWindow):
     """MDI SubWindow that can trigger callbacks upon closing."""
@@ -22,16 +31,9 @@ class ManagedMdiSubWindow(QMdiSubWindow):
                 pass
         super().closeEvent(event)
 
-from ui.generated.ui_main_window import Ui_MainWindow
-from core.services.book_service import BookService
-from ui.windows.book_list_widget import BookListWidget
-from ui.windows.book_card_widget import BookCardWidget
-from ui.windows.add_book_widget import AddBookWidget
-from ui.windows.search_widget import SearchWidget
-from ui.windows.about_widget import AboutWidget
-from ui.windows.ocr_window import OcrWindow
-
 class MainWindow(QMainWindow, Ui_MainWindow):
+
+
     """Главное MDI-окно приложения с интеграцией бизнес-логики."""
 
 
@@ -343,6 +345,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         sub_window.setWindowTitle(title)
         sub_window.setAttribute(Qt.WA_DeleteOnClose)
         
+        # Styling the MDI SubWindow for a modern flat look
+        sub_window.setStyleSheet("""
+            QMdiSubWindow {
+                background-color: #f5f9f6;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+            }
+        """)
+        
         # Set window flags for proper MDI behavior
         sub_window.setWindowFlags(
             Qt.SubWindow |
@@ -362,6 +373,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         sub_window.move(max(0, x), max(0, y))
         
         return sub_window
+
+
+
 
 
     def _open_book_list(self):

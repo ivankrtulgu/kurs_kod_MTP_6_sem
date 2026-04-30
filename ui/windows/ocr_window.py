@@ -233,7 +233,7 @@ class OcrWindow(QWidget):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(False)
         scroll_area.setAlignment(Qt.AlignCenter)
-        scroll_area.setMinimumSize(800, 600)
+        # Удалены жесткие минимальные размеры (800, 600) для гибкости интерфейса
         
         self.image_widget = OcrImageWidget()
         self.image_widget.setStyleSheet("background-color: #2d3748; border-radius: 8px;")
@@ -317,10 +317,10 @@ class OcrWindow(QWidget):
         lang_layout.setSpacing(8)
         
         self.combo_lang = QComboBox()
-        self.combo_lang.addItem("🇷🇺 Русский", "rus")
-        self.combo_lang.addItem("🇬🇧 English", "eng")
-        self.combo_lang.addItem("🇷🇺🇬🇧 Русский + English (смешанный)", "rus+eng")
-        self.combo_lang.addItem("🇬🇧🇷🇺 English + Русский (приоритет EN)", "eng+rus")
+        self.combo_lang.addItem("Русский", "rus")
+        self.combo_lang.addItem("English", "eng")
+        self.combo_lang.addItem("Русский + English (смешанный)", "rus+eng")
+        self.combo_lang.addItem("English + Русский (приоритет EN)", "eng+rus")
         self.combo_lang.addItem("Цифры и символы", "digits")
         self.combo_lang.setCurrentIndex(2)  # По умолчанию rus+eng
         lang_layout.addWidget(self.combo_lang)
@@ -344,7 +344,7 @@ class OcrWindow(QWidget):
         """)
         btn_layout.addWidget(self.btn_load)
 
-        self.btn_reset = QPushButton("🗑 Сброс")
+        self.btn_reset = QPushButton("Сброс")
         self.btn_reset.clicked.connect(self._reset_regions)
         self.btn_reset.setStyleSheet("""
             QPushButton {
