@@ -84,40 +84,52 @@ class ReaderTableModel(QAbstractTableModel):
     
     Columns:
         0: ID
-        1: Full Name
-        2: Phone
-        3: Status
+        1: Surname
+        2: First Name
+        3: Patronymic
+        4: Phone
+        5: Status
     """
-
+    
     def __init__(self, service: InventoryService, parent=None):
         super().__init__(parent)
         self._service = service
         self._readers: List[Reader] = []
-        self._headers = ["ID", "ФИО", "Телефон", "Статус"]
-
+        self._headers = ["ID", "Фамилия", "Имя", "Отчество", "Телефон", "Статус"]
+    
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self._readers)
-
+    
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self._headers)
-
+    
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid() or role != Qt.DisplayRole:
             return None
-
+        
         reader = self._readers[index.row()]
         col = index.column()
-
+        
         if col == 0:
             return str(reader.id)
         elif col == 1:
-            return reader.full_name
+            return reader.last_name
         elif col == 2:
-            return reader.phone
+            return reader.first_name
         elif col == 3:
-            return "Активен" if reader.is_active else "Неактивен"
-
+            return reader.middle_name
+        elif col == 4:
+            return reader.phone
+        elif col == 5:
+            status_map = {
+                "active": "Активен",
+                "blocked": "Заблокирован",
+                "expired": "Просрочен"
+            }
+            return status_map.get(reader.status, reader.status)
+        
         return None
+
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> any:
         if orientation == Qt.Orientation.Horizontal and role == Qt.DisplayRole:
@@ -168,15 +180,18 @@ class ActiveLoansTableModel(QAbstractTableModel):
         item = self._inventory_service._repo.get_item_by_id(loan.item_id)
         reader = self._inventory_service._repo.get_reader_by_id(loan.reader_id)
         book = self._book_service.get_book_by_id(item.book_id) if item else None
-
+        
         if col == 0:
             return item.inventory_number if item else "???"
         elif col == 1:
             return f"{book.author}. {book.title}" if book else "Неизвестно"
         elif col == 2:
-            return reader.full_name if reader else "Неизвестно"
+            if reader:
+                return f"{reader.last_name} {reader.first_name} {reader.middle_name}".strip()
+            return "Неизвестно"
         elif col == 3:
             return loan.issue_date.strftime("%d.%m.%Y")
+
         elif col == 4:
             return loan.due_date.strftime("%d.%m.%Y")
         elif col == 5:

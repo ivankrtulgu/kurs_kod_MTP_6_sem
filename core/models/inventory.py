@@ -48,13 +48,32 @@ class Reader:
     Represents a library reader.
     
     Attributes:
-        full_name: Reader's full name.
+        last_name: Reader's surname.
+        first_name: Reader's given name.
+        middle_name: Reader's patronymic (optional).
+        birth_date: Date of birth (ISO format).
         phone: Contact phone number.
-        is_active: Whether the reader is allowed to borrow books.
+        email: Contact email address.
+        home_address: Residential address.
+        registration_date: Date of library registration.
+        status: Current status ('active', 'blocked', 'expired').
+        notes: Additional remarks.
+        passport_series: Passport series.
+        passport_number: Passport number.
+        id: Primary key.
     """
-    full_name: str
-    phone: str
-    is_active: bool = True
+    last_name: str
+    first_name: str
+    middle_name: str = ""
+    birth_date: str = ""
+    phone: str = ""
+    email: str = ""
+    home_address: str = ""
+    registration_date: str = ""
+    status: str = "active"
+    notes: str = ""
+    passport_series: str = ""
+    passport_number: str = ""
     id: int = 0
 
 

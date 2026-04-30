@@ -6,7 +6,7 @@ Provides a widget for adding and editing library readers in an MDI environment.
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFormLayout, QCheckBox, QMessageBox
+    QLineEdit, QPushButton, QFormLayout, QComboBox, QTextEdit, QMessageBox
 )
 
 from PyQt5.QtCore import Qt
@@ -35,20 +35,58 @@ class AddReaderWidget(QWidget):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        # Name input
-        self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("Введите ФИО")
-        form.addRow("ФИО:", self.name_input)
+        # Name fields
+        self.last_name_input = QLineEdit()
+        self.last_name_input.setPlaceholderText("Введите фамилию")
+        form.addRow("Фамилия*:", self.last_name_input)
 
-        # Phone input
+        self.first_name_input = QLineEdit()
+        self.first_name_input.setPlaceholderText("Введите имя")
+        form.addRow("Имя*:", self.first_name_input)
+
+        self.middle_name_input = QLineEdit()
+        self.middle_name_input.setPlaceholderText("Введите отчество")
+        form.addRow("Отчество:", self.middle_name_input)
+
+        # Contact info
         self.phone_input = QLineEdit()
         self.phone_input.setPlaceholderText("Введите номер телефона")
         form.addRow("Телефон:", self.phone_input)
 
-        # Active status
-        self.active_checkbox = QCheckBox("Активен")
-        self.active_checkbox.setChecked(True)
-        form.addRow("Статус:", self.active_checkbox)
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("example@mail.com")
+        form.addRow("Email:", self.email_input)
+
+        # Personal details
+        self.birth_date_input = QLineEdit()
+        self.birth_date_input.setPlaceholderText("ГГГГ-ММ-ДД")
+        form.addRow("Дата рождения:", self.birth_date_input)
+
+        self.passport_series_input = QLineEdit()
+        self.passport_series_input.setPlaceholderText("Серия")
+        form.addRow("Серия паспорта:", self.passport_series_input)
+
+        self.passport_number_input = QLineEdit()
+        self.passport_number_input.setPlaceholderText("Номер")
+        form.addRow("Номер паспорта:", self.passport_number_input)
+
+        self.address_input = QLineEdit()
+        self.address_input.setPlaceholderText("Улица, дом, квартира")
+        form.addRow("Адрес проживания:", self.address_input)
+
+        self.reg_date_input = QLineEdit()
+        self.reg_date_input.setPlaceholderText("ГГГГ-ММ-ДД")
+        form.addRow("Дата регистрации:", self.reg_date_input)
+
+        # Status
+        self.status_combo = QComboBox()
+        self.status_combo.addItems(["active", "blocked", "expired"])
+        form.addRow("Статус:", self.status_combo)
+
+        # Notes
+        self.notes_input = QTextEdit()
+        self.notes_input.setMaximumHeight(100)
+        form.addRow("Заметки:", self.notes_input)
 
         layout.addLayout(form)
 
@@ -69,40 +107,76 @@ class AddReaderWidget(QWidget):
         try:
             reader = self._service._repo.get_reader_by_id(reader_id)
             if reader:
-                self.name_input.setText(reader.full_name)
+                self.last_name_input.setText(reader.last_name)
+                self.first_name_input.setText(reader.first_name)
+                self.middle_name_input.setText(reader.middle_name)
+                self.birth_date_input.setText(reader.birth_date)
+                self.passport_series_input.setText(reader.passport_series)
+                self.passport_number_input.setText(reader.passport_number)
                 self.phone_input.setText(reader.phone)
-                self.active_checkbox.setChecked(reader.is_active)
+                self.email_input.setText(reader.email)
+                self.address_input.setText(reader.home_address)
+                self.reg_date_input.setText(reader.registration_date)
+                self.status_combo.setCurrentText(reader.status)
+                self.notes_input.setPlainText(reader.notes)
         except Exception as e:
             if self._main_window:
                 self._main_window.notify(f"Не удалось загрузить данные читателя: {e}", "Ошибка", "error")
 
     def _handle_save(self):
         try:
-            name = self.name_input.text().strip()
+            last_name = self.last_name_input.text().strip()
+            first_name = self.first_name_input.text().strip()
+            middle_name = self.middle_name_input.text().strip()
+            birth_date = self.birth_date_input.text().strip()
+            passport_series = self.passport_series_input.text().strip()
+            passport_number = self.passport_number_input.text().strip()
             phone = self.phone_input.text().strip()
-            is_active = self.active_checkbox.isChecked()
+            email = self.email_input.text().strip()
+            address = self.address_input.text().strip()
+            reg_date = self.reg_date_input.text().strip()
+            status = self.status_combo.currentText()
+            notes = self.notes_input.toPlainText().strip()
 
-            if not name or not phone:
+            if not last_name or not first_name:
                 if self._main_window:
-                    self._main_window.notify("Поля ФИО и Телефон обязательны для заполнения", "Ошибка ввода", "warning")
+                    self._main_window.notify("Фамилия и Имя обязательны для заполнения", "Ошибка ввода", "warning")
                 return
 
             if self._reader_id:
                 # Update
                 reader = Reader(
                     id=self._reader_id,
-                    full_name=name,
+                    last_name=last_name,
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    birth_date=birth_date,
                     phone=phone,
-                    is_active=is_active
+                    email=email,
+                    home_address=address,
+                    registration_date=reg_date,
+                    status=status,
+                    notes=notes,
+                    passport_series=passport_series,
+                    passport_number=passport_number
                 )
                 self._service.update_reader(reader)
                 QMessageBox.information(self, "Успех", "Данные читателя обновлены")
             else:
                 # Create
                 reader = Reader(
-                    full_name=name,
+                    last_name=last_name,
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    birth_date=birth_date,
                     phone=phone,
-                    is_active=is_active
+                    email=email,
+                    home_address=address,
+                    registration_date=reg_date,
+                    status=status,
+                    notes=notes,
+                    passport_series=passport_series,
+                    passport_number=passport_number
                 )
                 self._service.add_reader(reader)
                 QMessageBox.information(self, "Успех", "Читатель добавлен")

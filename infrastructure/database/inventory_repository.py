@@ -28,16 +28,28 @@ class SQLiteInventoryRepository:
     def _init_db(self) -> None:
         """Initialize inventory tables."""
         queries = [
+            # Force recreate readers table to apply new schema during development
+            "DROP TABLE IF EXISTS readers",
             """
-            CREATE TABLE IF NOT EXISTS readers (
+            CREATE TABLE readers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                full_name TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                is_active BOOLEAN NOT NULL DEFAULT 1
+                last_name TEXT NOT NULL,
+                first_name TEXT NOT NULL,
+                middle_name TEXT,
+                birth_date TEXT,
+                phone TEXT,
+                email TEXT,
+                home_address TEXT,
+                registration_date TEXT,
+                status TEXT CHECK(status IN ('active', 'blocked', 'expired')) DEFAULT 'active',
+                notes TEXT,
+                passport_series TEXT,
+                passport_number TEXT
             )
             """,
             """
             CREATE TABLE IF NOT EXISTS book_items (
+
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 inventory_number TEXT UNIQUE NOT NULL,
                 book_id INTEGER NOT NULL,
@@ -196,8 +208,18 @@ class SQLiteInventoryRepository:
     # --- Reader Methods ---
     
     def add_reader(self, reader: Reader) -> int:
-        query = "INSERT INTO readers (full_name, phone, is_active) VALUES (?, ?, ?)"
-        params = (reader.full_name, reader.phone, reader.is_active)
+        query = """
+            INSERT INTO readers (
+                last_name, first_name, middle_name, birth_date, 
+                phone, email, home_address, registration_date, status, notes,
+                passport_series, passport_number
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        params = (
+            reader.last_name, reader.first_name, reader.middle_name, reader.birth_date,
+            reader.phone, reader.email, reader.home_address, reader.registration_date,
+            reader.status, reader.notes, reader.passport_series, reader.passport_number
+        )
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -206,8 +228,18 @@ class SQLiteInventoryRepository:
 
     def update_reader(self, reader: Reader) -> bool:
         """Update existing reader information."""
-        query = "UPDATE readers SET full_name = ?, phone = ?, is_active = ? WHERE id = ?"
-        params = (reader.full_name, reader.phone, reader.is_active, reader.id)
+        query = """
+            UPDATE readers SET 
+                last_name = ?, first_name = ?, middle_name = ?, birth_date = ?, 
+                phone = ?, email = ?, home_address = ?, registration_date = ?, 
+                status = ?, notes = ?, passport_series = ?, passport_number = ?
+            WHERE id = ?
+        """
+        params = (
+            reader.last_name, reader.first_name, reader.middle_name, reader.birth_date,
+            reader.phone, reader.email, reader.home_address, reader.registration_date,
+            reader.status, reader.notes, reader.passport_series, reader.passport_number, reader.id
+        )
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -233,9 +265,18 @@ class SQLiteInventoryRepository:
             return [
                 Reader(
                     id=row["id"],
-                    full_name=row["full_name"],
-                    phone=row["phone"],
-                    is_active=bool(row["is_active"])
+                    last_name=row["last_name"],
+                    first_name=row["first_name"],
+                    middle_name=row["middle_name"] or "",
+                    birth_date=row["birth_date"] or "",
+                    phone=row["phone"] or "",
+                    email=row["email"] or "",
+                    home_address=row["home_address"] or "",
+                    registration_date=row["registration_date"] or "",
+                    status=row["status"] or "active",
+                    notes=row["notes"] or "",
+                    passport_series=row["passport_series"] or "",
+                    passport_number=row["passport_number"] or ""
                 ) for row in rows
             ]
 
@@ -248,9 +289,18 @@ class SQLiteInventoryRepository:
             if row:
                 return Reader(
                     id=row["id"],
-                    full_name=row["full_name"],
-                    phone=row["phone"],
-                    is_active=bool(row["is_active"])
+                    last_name=row["last_name"],
+                    first_name=row["first_name"],
+                    middle_name=row["middle_name"] or "",
+                    birth_date=row["birth_date"] or "",
+                    phone=row["phone"] or "",
+                    email=row["email"] or "",
+                    home_address=row["home_address"] or "",
+                    registration_date=row["registration_date"] or "",
+                    status=row["status"] or "active",
+                    notes=row["notes"] or "",
+                    passport_series=row["passport_series"] or "",
+                    passport_number=row["passport_number"] or ""
                 )
             return None
 
