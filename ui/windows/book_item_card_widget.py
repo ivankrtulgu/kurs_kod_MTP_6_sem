@@ -297,12 +297,16 @@ class BookItemCardWidget(QWidget):
     def _on_issue(self):
         """Open issue window with pre-filled item."""
         if self._item:
-            self._main_window._open_issue_window(self._item.inventory_number)
+            self._issue_window = self._main_window._open_issue_window(self._item.inventory_number)
+            # Link lifecycles
+            self._main_window.add_close_dependency(self, self._issue_window)
 
     def _on_return(self):
         """Open return window with pre-filled item."""
         if self._item:
-            self._main_window._open_return_window(self._item.inventory_number)
+            self._return_window = self._main_window._open_return_window(self._item.inventory_number)
+            # Link lifecycles
+            self._main_window.add_close_dependency(self, self._return_window)
 
     def _on_save_location(self):
         """Update the item's location in the database."""
@@ -368,3 +372,7 @@ class BookItemCardWidget(QWidget):
                     
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка при изменении статуса: {e}")
+
+    def closeEvent(self, event):
+        """Remove dependencies and let window close."""
+        event.accept()

@@ -3,9 +3,26 @@
 
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QMdiSubWindow, QMdiArea
 from PyQt5.QtCore import Qt
-from typing import Any
-from ui.generated.ui_main_window import Ui_MainWindow
+from typing import Any, Callable
 
+class ManagedMdiSubWindow(QMdiSubWindow):
+    """MDI SubWindow that can trigger callbacks upon closing."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._close_callbacks: list[Callable[[], None]] = []
+
+    def add_close_callback(self, callback: Callable[[], None]):
+        self._close_callbacks.append(callback)
+
+    def closeEvent(self, event):
+        for callback in self._close_callbacks:
+            try:
+                callback()
+            except Exception:
+                pass
+        super().closeEvent(event)
+
+from ui.generated.ui_main_window import Ui_MainWindow
 from core.services.book_service import BookService
 from ui.windows.book_list_widget import BookListWidget
 from ui.windows.book_card_widget import BookCardWidget
@@ -14,9 +31,10 @@ from ui.windows.search_widget import SearchWidget
 from ui.windows.about_widget import AboutWidget
 from ui.windows.ocr_window import OcrWindow
 
-
 class MainWindow(QMainWindow, Ui_MainWindow):
     """Главное MDI-окно приложения с интеграцией бизнес-логики."""
+
+
 
     def __init__(self, parent=None, book_service: BookService | None = None, inventory_service: Any | None = None):
         super().__init__(parent)
@@ -316,20 +334,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # ========== КАТАЛОГ ==========
 
-    def _create_sub_window(self, widget, title: str, width: int = 800, height: int = 600) -> QMdiSubWindow:
+    def _create_sub_window(self, widget, title: str, width: int = 800, height: int = 600) -> ManagedMdiSubWindow:
         """
-        Create a properly configured MDI sub window.
-        
-        Args:
-            widget: The widget to place in the sub window
-            title: Window title
-            width: Initial width
-            height: Initial height
-            
-        Returns:
-            Configured QMdiSubWindow
+        Create a properly configured Managed MDI sub window.
         """
-        sub_window = QMdiSubWindow()
+        sub_window = ManagedMdiSubWindow()
         sub_window.setWidget(widget)
         sub_window.setWindowTitle(title)
         sub_window.setAttribute(Qt.WA_DeleteOnClose)
@@ -353,6 +362,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         sub_window.move(max(0, x), max(0, y))
         
         return sub_window
+
 
     def _open_book_list(self):
         """Открыть список книг как MDI дочернее окно."""
@@ -535,6 +545,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if title_contains in sub_window.windowTitle():
                 return sub_window
         return None
+
+    def _find_subwindow_for_widget(self, widget: Any) -> ManagedMdiSubWindow | None:
+        """Find the ManagedMdiSubWindow that contains the given widget."""
+        for sub_window in self.mdi_area.subWindowList():
+            if sub_window.widget() == widget:
+                return sub_window
+        return None
+
+    def add_close_dependency(self, parent_widget: Any, child_widget: Any):
+        """
+        Establishes a dependency: when parent_widget's window closes, 
+        child_widget's window also closes.
+        """
+        parent_sub = self._find_subwindow_for_widget(parent_widget)
+        child_sub = self._find_subwindow_for_widget(child_widget)
+        
+        if parent_sub and child_sub:
+            parent_sub.add_close_callback(lambda: child_sub.close())
+
+    def close_widget_subwindow(self, widget: Any):
+        """
+        Find the MDI subwindow containing the given widget and close it.
+        """
+        for sub_window in self.mdi_area.subWindowList():
+            if sub_window.widget() == widget:
+                sub_window.close()
+                break
 
     def closeEvent(self, event):
         """Handle main window close - close all MDI subwindows."""

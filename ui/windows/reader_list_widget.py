@@ -65,7 +65,7 @@ class ReaderListWidget(QWidget):
         from ui.windows.add_reader_widget import AddReaderWidget
         main_window = self.window()
         if hasattr(main_window, '_open_mdi_subwindow'):
-            main_window._open_mdi_subwindow(AddReaderWidget, self._service)
+            self._opened_reader_widget = main_window._open_mdi_subwindow(AddReaderWidget, self._service)
 
     def _on_item_double_clicked(self, index):
         """Handle double click on a reader."""
@@ -80,7 +80,15 @@ class ReaderListWidget(QWidget):
             main_window = self.window()
             if hasattr(main_window, '_open_mdi_subwindow'):
                 from ui.windows.add_reader_widget import AddReaderWidget
-                main_window._open_mdi_subwindow(AddReaderWidget, self._service, reader_id=reader_id)
+                self._opened_reader_widget = main_window._open_mdi_subwindow(AddReaderWidget, self._service, reader_id=reader_id)
+
+    def closeEvent(self, event):
+        """Ensure dependent reader edit/add window is closed when this list is closed."""
+        if hasattr(self, '_opened_reader_widget') and self._opened_reader_widget:
+            main_window = self.window()
+            if hasattr(main_window, 'close_widget_subwindow'):
+                main_window.close_widget_subwindow(self._opened_reader_widget)
+        super().closeEvent(event)
 
     def refresh_list(self):
         """Refresh the reader table data."""

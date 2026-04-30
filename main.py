@@ -8,6 +8,7 @@ and injecting them into the UI layer.
 import os
 import sys
 import PyQt5
+from pathlib import Path
 from PyQt5.QtWidgets import QApplication
 
 # Setup Qt plugins path for environments where it's not automatically found
@@ -36,7 +37,9 @@ def main():
 
     # 1. Infrastructure Layer
     # DatabaseManager requires the path to the .db file
-    db_path = "library.db"
+    # Use path relative to the application folder to match init_db.py
+    app_dir = Path(__file__).parent
+    db_path = app_dir / "library.db"
     db_manager = DatabaseManager(db_path)
     
     # 2. Repository Layer

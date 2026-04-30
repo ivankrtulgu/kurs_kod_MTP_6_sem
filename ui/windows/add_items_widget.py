@@ -86,9 +86,17 @@ class AddItemsWidget(QWidget):
         """Request the main window to open the BookListWidget in selection mode."""
         parent_window = self.window()
         if hasattr(parent_window, '_open_book_list_for_selection'):
-            parent_window._open_book_list_for_selection(self.set_selected_book)
+            self._opened_selection_widget = parent_window._open_book_list_for_selection(self.set_selected_book)
         else:
             QMessageBox.critical(self, "Ошибка", "Система выбора книг не доступна")
+
+    def closeEvent(self, event):
+        """Ensure dependent selection window is closed when this widget is closed."""
+        if hasattr(self, '_opened_selection_widget') and self._opened_selection_widget:
+            main_window = self.window()
+            if hasattr(main_window, 'close_widget_subwindow'):
+                main_window.close_widget_subwindow(self._opened_selection_widget)
+        super().closeEvent(event)
 
     def set_selected_book(self, book_id: int, book_text: str):
         """Set the selected book after selection from the list."""
@@ -140,4 +148,6 @@ class AddItemsWidget(QWidget):
             QMessageBox.critical(self, "Ошибка ввода", str(e))
         except Exception as e:
             QMessageBox.critical(self, "Ошибка системы", f"Не удалось добавить экземпляры: {str(e)}")
+
+
 
