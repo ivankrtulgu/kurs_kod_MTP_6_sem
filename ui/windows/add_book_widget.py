@@ -125,31 +125,40 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
     def _on_ocr(self):
         """Open OCR widget and populate fields with recognized text."""
         try:
-            # Find parent main window and open OCR as MDI child
+            # Find parent main window
             parent_window = self.window()
-            if hasattr(parent_window, 'mdi_area'):
-                # Open OCR in the main MDI area
-                ocr_widget = OcrWindow()
-                
-                from PyQt5.QtWidgets import QMdiSubWindow
-                from PyQt5.QtCore import Qt
-                
-                sub_window = QMdiSubWindow()
-                sub_window.setWidget(ocr_widget)
-                sub_window.setWindowTitle("OCR для добавления книги")
-                sub_window.setAttribute(Qt.WA_DeleteOnClose)
-                sub_window.resize(1000, 750)
-                
+            if not hasattr(parent_window, 'mdi_area'):
+                QMessageBox.information(self, "OCR", "Откройте главное окно для полноценного OCR")
+                return
+
+            # Create the OCR widget
+            ocr_widget = OcrWindow()
+            
+            # Use the main window's managed window creator to ensure it's a ManagedMdiSubWindow
+            if hasattr(parent_window, '_create_sub_window'):
+                sub_window = parent_window._create_sub_window(
+                    ocr_widget, 
+                    "OCR для добавления книги", 
+                    1000, 750
+                )
                 parent_window.mdi_area.addSubWindow(sub_window)
                 sub_window.show()
                 
-                # Connect OCR data signal to fill form
-                ocr_widget.ocr_data_ready.connect(self._fill_from_ocr_data)
-                
+                # Link lifecycles: close OCR window if this widget is closed
+                if hasattr(parent_window, 'add_close_dependency'):
+                    parent_window.add_close_dependency(self, ocr_widget)
             else:
-                # Fallback: use embedded OCR
-                QMessageBox.information(self, "OCR", "Откройте главное окно для полноценного OCR")
-                
+                # Fallback for safety
+                from PyQt5.QtWidgets import QMdiSubWindow
+                sub_window = QMdiSubWindow()
+                sub_window.setWidget(ocr_widget)
+                sub_window.setWindowTitle("OCR для добавления книги")
+                parent_window.mdi_area.addSubWindow(sub_window)
+                sub_window.show()
+
+            # Connect OCR data signal to fill form
+            ocr_widget.ocr_data_ready.connect(self._fill_from_ocr_data)
+            
         except Exception as e:
             QMessageBox.critical(self, "Ошибка OCR", f"Ошибка распознавания: {e}")
 

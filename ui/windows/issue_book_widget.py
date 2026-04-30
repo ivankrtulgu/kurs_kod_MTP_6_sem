@@ -78,16 +78,9 @@ class IssueBookWidget(QWidget):
         main_window = self.window()
         if hasattr(main_window, '_open_reader_list_for_selection'):
             self._opened_selection_widget = main_window._open_reader_list_for_selection(self.set_selected_reader)
+            main_window.add_close_dependency(self, self._opened_selection_widget)
         else:
             QMessageBox.critical(self, "Ошибка", "Система выбора читателей не доступна")
-
-    def closeEvent(self, event):
-        """Ensure dependent selection window is closed when this widget is closed."""
-        if hasattr(self, '_opened_selection_widget') and self._opened_selection_widget:
-            main_window = self.window()
-            if hasattr(main_window, 'close_widget_subwindow'):
-                main_window.close_widget_subwindow(self._opened_selection_widget)
-        super().closeEvent(event)
 
     def set_selected_reader(self, reader_id: int, reader_name: str):
         """Callback method to update UI with selected reader."""

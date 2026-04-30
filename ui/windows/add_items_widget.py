@@ -87,16 +87,9 @@ class AddItemsWidget(QWidget):
         parent_window = self.window()
         if hasattr(parent_window, '_open_book_list_for_selection'):
             self._opened_selection_widget = parent_window._open_book_list_for_selection(self.set_selected_book)
+            parent_window.add_close_dependency(self, self._opened_selection_widget)
         else:
             QMessageBox.critical(self, "Ошибка", "Система выбора книг не доступна")
-
-    def closeEvent(self, event):
-        """Ensure dependent selection window is closed when this widget is closed."""
-        if hasattr(self, '_opened_selection_widget') and self._opened_selection_widget:
-            main_window = self.window()
-            if hasattr(main_window, 'close_widget_subwindow'):
-                main_window.close_widget_subwindow(self._opened_selection_widget)
-        super().closeEvent(event)
 
     def set_selected_book(self, book_id: int, book_text: str):
         """Set the selected book after selection from the list."""
