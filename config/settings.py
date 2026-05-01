@@ -16,7 +16,7 @@ load_dotenv(BASE_DIR / ".env")
 class Settings:
     """Application settings loaded from .env file."""
 
-    DATABASE_PATH: Path = Path(os.getenv("DATABASE_PATH", BASE_DIR / "library.db"))
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/library_db")
     RESOURCES_PATH: Path = Path(os.getenv("RESOURCES_PATH", BASE_DIR / "resources"))
     TEMP_PATH: Path = Path(os.getenv("TEMP_PATH", BASE_DIR / "temp"))
     QR_SALT: str = os.getenv("QR_SALT", "lib_unique_salt_2026")

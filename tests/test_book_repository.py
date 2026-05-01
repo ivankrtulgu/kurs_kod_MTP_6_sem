@@ -1,51 +1,30 @@
 """
 Tests for BookRepository layer.
 
-Tests the SQLite implementation of book repository operations.
+Tests the PostgreSQL implementation of book repository operations.
 """
 
 import pytest
-import sqlite3
-from pathlib import Path
 from datetime import datetime
 import sys
-import os
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from config.settings import settings
 from core.models.book import Book
-from infrastructure.database.connection import DatabaseManager
-from infrastructure.database.book_repository import SQLiteBookRepository
+from infrastructure.database.connection import PostgresDatabaseManager
+from infrastructure.database.book_repository import PostgresBookRepository
 
 
 # ===== FIXTURES =====
 
 @pytest.fixture
-def test_db_path(tmp_path):
-    """Create temporary database path."""
-    return tmp_path / "test_library.db"
-
-
-@pytest.fixture
-def db_manager(test_db_path):
-    """Create database manager with test database."""
-    return DatabaseManager(test_db_path)
-
-
-@pytest.fixture
-def repository(db_manager, test_db_path):
-    """Create repository with initialized database."""
-    # Initialize database schema
-    schema_path = project_root / "infrastructure" / "database" / "schema.sql"
-    conn = sqlite3.connect(test_db_path)
-    with open(schema_path, "r", encoding="utf-8") as f:
-        conn.executescript(f.read())
-    conn.commit()
-    conn.close()
-    
-    return SQLiteBookRepository(db_manager)
+def repository(mock_db_manager):
+    """Create repository using the mock manager for transactional isolation."""
+    return PostgresBookRepository(mock_db_manager)
 
 
 @pytest.fixture

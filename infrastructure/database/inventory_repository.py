@@ -1,4 +1,4 @@
-"""SQLite inventory repository implementation."""
+"""Postgres inventory repository implementation."""
 
 import logging
 from datetime import datetime
@@ -11,98 +11,35 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.models.inventory import BookItem, Reader, LoanRecord, ItemStatus
-from infrastructure.database.connection import DatabaseManager
+from infrastructure.database.connection import PostgresDatabaseManager
 
 logger = logging.getLogger(__name__)
 
 
-class SQLiteInventoryRepository:
+class PostgresInventoryRepository:
     """
-    SQLite implementation for managing physical inventory, readers, and loans.
+    Postgres implementation for managing physical inventory, readers, and loans.
     """
 
-    def __init__(self, db_manager: DatabaseManager) -> None:
+    def __init__(self, db_manager: PostgresDatabaseManager) -> None:
         self._db = db_manager
-        self._init_db()
-
-    def _init_db(self) -> None:
-        """Initialize inventory tables."""
-        queries = [
-            # Force recreate readers table to apply new schema during development
-            "DROP TABLE IF EXISTS readers",
-            """
-            CREATE TABLE readers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                last_name TEXT NOT NULL,
-                first_name TEXT NOT NULL,
-                middle_name TEXT,
-                birth_date TEXT,
-                phone TEXT,
-                email TEXT,
-                home_address TEXT,
-                registration_date TEXT,
-                status TEXT CHECK(status IN ('active', 'blocked', 'expired')) DEFAULT 'active',
-                notes TEXT,
-                passport_series TEXT,
-                passport_number TEXT
-            )
-            """,
-            """
-            CREATE TABLE IF NOT EXISTS book_items (
-
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                inventory_number TEXT UNIQUE NOT NULL,
-                book_id INTEGER NOT NULL,
-                status TEXT NOT NULL,
-                location TEXT,
-                qr_code_path TEXT,
-                FOREIGN KEY (book_id) REFERENCES books (id)
-            )
-            """,
-            """
-            CREATE TABLE IF NOT EXISTS loan_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_id INTEGER NOT NULL,
-                reader_id INTEGER NOT NULL,
-                issue_date TEXT NOT NULL,
-                due_date TEXT NOT NULL,
-                return_date TEXT,
-                condition_on_issue TEXT,
-                condition_on_return TEXT,
-                FOREIGN KEY (item_id) REFERENCES book_items (id),
-                FOREIGN KEY (reader_id) REFERENCES readers (id)
-            )
-            """,
-        ]
-        with self._db.get_connection() as conn:
-            cursor = conn.cursor()
-            for query in queries:
-                cursor.execute(query)
-            
-            # Migration: Add qr_code_path if it doesn't exist
-            try:
-                cursor.execute("ALTER TABLE book_items ADD COLUMN qr_code_path TEXT")
-            except Exception:
-                pass # Column already exists
-                
-            conn.commit()
 
     # --- BookItem Methods ---
 
     def add_item(self, item: BookItem) -> int:
         query = """
             INSERT INTO book_items (inventory_number, book_id, status, location)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s) RETURNING id
         """
         params = (item.inventory_number, item.book_id, item.status.value, item.location)
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
-            return cursor.lastrowid
+            return cursor.fetchone()["id"]
 
     def get_item_by_id(self, item_id: int) -> Optional[BookItem]:
-        query = "SELECT * FROM book_items WHERE id = ?"
+        query = "SELECT * FROM book_items WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (item_id,))
@@ -120,7 +57,7 @@ class SQLiteInventoryRepository:
 
     def get_item_by_inventory_number(self, inv_num: str) -> Optional[BookItem]:
         """Find a book item by its unique inventory number."""
-        query = "SELECT * FROM book_items WHERE inventory_number = ?"
+        query = "SELECT * FROM book_items WHERE inventory_number = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (inv_num,))
@@ -137,7 +74,7 @@ class SQLiteInventoryRepository:
             return None
 
     def get_items_by_book(self, book_id: int) -> List[BookItem]:
-        query = "SELECT * FROM book_items WHERE book_id = ?"
+        query = "SELECT * FROM book_items WHERE book_id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (book_id,))
@@ -172,7 +109,7 @@ class SQLiteInventoryRepository:
 
     def update_item_qr_path(self, item_id: int, qr_path: str) -> bool:
         """Update the QR code file path for a book item."""
-        query = "UPDATE book_items SET qr_code_path = ? WHERE id = ?"
+        query = "UPDATE book_items SET qr_code_path = %s WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (qr_path, item_id))
@@ -181,7 +118,7 @@ class SQLiteInventoryRepository:
 
     def update_item_location(self, item_id: int, location: str) -> bool:
         """Update the shelf location for a book item."""
-        query = "UPDATE book_items SET location = ? WHERE id = ?"
+        query = "UPDATE book_items SET location = %s WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (location, item_id))
@@ -189,7 +126,7 @@ class SQLiteInventoryRepository:
             return cursor.rowcount > 0
 
     def update_item_status(self, item_id: int, status: ItemStatus) -> bool:
-        query = "UPDATE book_items SET status = ? WHERE id = ?"
+        query = "UPDATE book_items SET status = %s WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (status.value, item_id))
@@ -198,11 +135,12 @@ class SQLiteInventoryRepository:
 
     def get_max_inventory_number(self) -> int:
         """Find the maximum existing inventory number for sequential numbering."""
-        query = "SELECT MAX(CAST(inventory_number AS INTEGER)) FROM book_items"
+        query = "SELECT MAX(CAST(inventory_number AS INTEGER)) as max_inv FROM book_items"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query)
-            result = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            result = row["max_inv"] if row else None
             return result if result is not None else 0
 
     # --- Reader Methods ---
@@ -213,32 +151,51 @@ class SQLiteInventoryRepository:
                 last_name, first_name, middle_name, birth_date, 
                 phone, email, home_address, registration_date, status, notes,
                 passport_series, passport_number
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         """
         params = (
-            reader.last_name, reader.first_name, reader.middle_name, reader.birth_date,
-            reader.phone, reader.email, reader.home_address, reader.registration_date,
-            reader.status, reader.notes, reader.passport_series, reader.passport_number
+            reader.last_name, 
+            reader.first_name, 
+            reader.middle_name or None, 
+            reader.birth_date if reader.birth_date not in (None, "") else None,
+            reader.phone, 
+            reader.email, 
+            reader.home_address, 
+            reader.registration_date if reader.registration_date not in (None, "") else None,
+            reader.status, 
+            reader.notes, 
+            reader.passport_series, 
+            reader.passport_number
         )
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
-            return cursor.lastrowid
+            return cursor.fetchone()["id"]
 
     def update_reader(self, reader: Reader) -> bool:
         """Update existing reader information."""
         query = """
             UPDATE readers SET 
-                last_name = ?, first_name = ?, middle_name = ?, birth_date = ?, 
-                phone = ?, email = ?, home_address = ?, registration_date = ?, 
-                status = ?, notes = ?, passport_series = ?, passport_number = ?
-            WHERE id = ?
+                last_name = %s, first_name = %s, middle_name = %s, birth_date = %s, 
+                phone = %s, email = %s, home_address = %s, registration_date = %s, 
+                status = %s, notes = %s, passport_series = %s, passport_number = %s
+            WHERE id = %s
         """
         params = (
-            reader.last_name, reader.first_name, reader.middle_name, reader.birth_date,
-            reader.phone, reader.email, reader.home_address, reader.registration_date,
-            reader.status, reader.notes, reader.passport_series, reader.passport_number, reader.id
+            reader.last_name, 
+            reader.first_name, 
+            reader.middle_name or None, 
+            reader.birth_date if reader.birth_date not in (None, "") else None,
+            reader.phone, 
+            reader.email, 
+            reader.home_address, 
+            reader.registration_date if reader.registration_date not in (None, "") else None,
+            reader.status, 
+            reader.notes, 
+            reader.passport_series, 
+            reader.passport_number, 
+            reader.id
         )
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
@@ -248,7 +205,7 @@ class SQLiteInventoryRepository:
 
     def delete_reader(self, reader_id: int) -> bool:
         """Delete a reader from the database."""
-        query = "DELETE FROM readers WHERE id = ?"
+        query = "DELETE FROM readers WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (reader_id,))
@@ -281,7 +238,7 @@ class SQLiteInventoryRepository:
             ]
 
     def get_reader_by_id(self, reader_id: int) -> Optional[Reader]:
-        query = "SELECT * FROM readers WHERE id = ?"
+        query = "SELECT * FROM readers WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (reader_id,))
@@ -311,7 +268,7 @@ class SQLiteInventoryRepository:
             INSERT INTO loan_records (
                 item_id, reader_id, issue_date, due_date, 
                 return_date, condition_on_issue, condition_on_return
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
         """
         params = (
             loan.item_id, loan.reader_id, 
@@ -323,11 +280,11 @@ class SQLiteInventoryRepository:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
-            return cursor.lastrowid
+            return cursor.fetchone()["id"]
 
     def find_active_loan(self, item_id: int) -> Optional[LoanRecord]:
         """Find the current open loan for a specific item."""
-        query = "SELECT * FROM loan_records WHERE item_id = ? AND return_date IS NULL"
+        query = "SELECT * FROM loan_records WHERE item_id = %s AND return_date IS NULL"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (item_id,))
@@ -337,9 +294,9 @@ class SQLiteInventoryRepository:
                     id=row["id"],
                     item_id=row["item_id"],
                     reader_id=row["reader_id"],
-                    issue_date=datetime.fromisoformat(row["issue_date"]),
-                    due_date=datetime.fromisoformat(row["due_date"]),
-                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    issue_date=row["issue_date"] if isinstance(row["issue_date"], datetime) else datetime.fromisoformat(row["issue_date"]),
+                    due_date=row["due_date"] if isinstance(row["due_date"], datetime) else datetime.fromisoformat(row["due_date"]),
+                    return_date=row["return_date"] if isinstance(row["return_date"], datetime) else (datetime.fromisoformat(row["return_date"]) if row["return_date"] else None),
                     condition_on_issue=row["condition_on_issue"] or "",
                     condition_on_return=row["condition_on_return"]
                 )
@@ -347,7 +304,7 @@ class SQLiteInventoryRepository:
 
     def close_loan(self, loan_id: int, return_date: datetime, condition: str) -> bool:
         """Update a loan record when a book is returned."""
-        query = "UPDATE loan_records SET return_date = ?, condition_on_return = ? WHERE id = ?"
+        query = "UPDATE loan_records SET return_date = %s, condition_on_return = %s WHERE id = %s"
         params = (return_date.isoformat(), condition, loan_id)
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
@@ -356,7 +313,7 @@ class SQLiteInventoryRepository:
             return cursor.rowcount > 0
 
     def get_item_history(self, item_id: int) -> List[LoanRecord]:
-        query = "SELECT * FROM loan_records WHERE item_id = ? ORDER BY issue_date ASC"
+        query = "SELECT * FROM loan_records WHERE item_id = %s ORDER BY issue_date ASC"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (item_id,))
@@ -366,9 +323,9 @@ class SQLiteInventoryRepository:
                     id=row["id"],
                     item_id=row["item_id"],
                     reader_id=row["reader_id"],
-                    issue_date=datetime.fromisoformat(row["issue_date"]),
-                    due_date=datetime.fromisoformat(row["due_date"]),
-                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    issue_date=row["issue_date"] if isinstance(row["issue_date"], datetime) else datetime.fromisoformat(row["issue_date"]),
+                    due_date=row["due_date"] if isinstance(row["due_date"], datetime) else datetime.fromisoformat(row["due_date"]),
+                    return_date=row["return_date"] if isinstance(row["return_date"], datetime) else (datetime.fromisoformat(row["return_date"]) if row["return_date"] else None),
                     condition_on_issue=row["condition_on_issue"] or "",
                     condition_on_return=row["condition_on_return"]
                 ) for row in rows
@@ -376,9 +333,9 @@ class SQLiteInventoryRepository:
 
     def get_loans_by_reader(self, reader_id: int, active_only: bool = True) -> List[LoanRecord]:
         if active_only:
-            query = "SELECT * FROM loan_records WHERE reader_id = ? AND return_date IS NULL"
+            query = "SELECT * FROM loan_records WHERE reader_id = %s AND return_date IS NULL"
         else:
-            query = "SELECT * FROM loan_records WHERE reader_id = ?"
+            query = "SELECT * FROM loan_records WHERE reader_id = %s"
             
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
@@ -389,9 +346,9 @@ class SQLiteInventoryRepository:
                     id=row["id"],
                     item_id=row["item_id"],
                     reader_id=row["reader_id"],
-                    issue_date=datetime.fromisoformat(row["issue_date"]),
-                    due_date=datetime.fromisoformat(row["due_date"]),
-                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    issue_date=row["issue_date"] if isinstance(row["issue_date"], datetime) else datetime.fromisoformat(row["issue_date"]),
+                    due_date=row["due_date"] if isinstance(row["due_date"], datetime) else datetime.fromisoformat(row["due_date"]),
+                    return_date=row["return_date"] if isinstance(row["return_date"], datetime) else (datetime.fromisoformat(row["return_date"]) if row["return_date"] else None),
                     condition_on_issue=row["condition_on_issue"] or "",
                     condition_on_return=row["condition_on_return"]
                 ) for row in rows
@@ -409,9 +366,9 @@ class SQLiteInventoryRepository:
                     id=row["id"],
                     item_id=row["item_id"],
                     reader_id=row["reader_id"],
-                    issue_date=datetime.fromisoformat(row["issue_date"]),
-                    due_date=datetime.fromisoformat(row["due_date"]),
-                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    issue_date=row["issue_date"] if isinstance(row["issue_date"], datetime) else datetime.fromisoformat(row["issue_date"]),
+                    due_date=row["due_date"] if isinstance(row["due_date"], datetime) else datetime.fromisoformat(row["due_date"]),
+                    return_date=row["return_date"] if isinstance(row["return_date"], datetime) else (datetime.fromisoformat(row["return_date"]) if row["return_date"] else None),
                     condition_on_issue=row["condition_on_issue"] or "",
                     condition_on_return=row["condition_on_return"]
                 ) for row in rows
@@ -429,9 +386,9 @@ class SQLiteInventoryRepository:
                     id=row["id"],
                     item_id=row["item_id"],
                     reader_id=row["reader_id"],
-                    issue_date=datetime.fromisoformat(row["issue_date"]),
-                    due_date=datetime.fromisoformat(row["due_date"]),
-                    return_date=datetime.fromisoformat(row["return_date"]) if row["return_date"] else None,
+                    issue_date=row["issue_date"] if isinstance(row["issue_date"], datetime) else datetime.fromisoformat(row["issue_date"]),
+                    due_date=row["due_date"] if isinstance(row["due_date"], datetime) else datetime.fromisoformat(row["due_date"]),
+                    return_date=row["return_date"] if isinstance(row["return_date"], datetime) else (datetime.fromisoformat(row["return_date"]) if row["return_date"] else None),
                     condition_on_issue=row["condition_on_issue"] or "",
                     condition_on_return=row["condition_on_return"]
                 ) for row in rows

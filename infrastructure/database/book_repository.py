@@ -1,7 +1,6 @@
-"""SQLite book repository implementation."""
+"""PostgreSQL book repository implementation."""
 
 import logging
-import sqlite3
 from datetime import datetime
 from typing import Optional
 
@@ -12,19 +11,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.interfaces.repository import BookRepository
 from core.models.book import Book
-from infrastructure.database.connection import DatabaseManager
+from infrastructure.database.connection import PostgresDatabaseManager
 
 logger = logging.getLogger(__name__)
 
 
-class SQLiteBookRepository(BookRepository):
+class PostgresBookRepository(BookRepository):
     """
-    SQLite implementation of BookRepository.
+    PostgreSQL implementation of BookRepository.
     
     Uses prepared statements for SQL injection protection.
     """
 
-    def __init__(self, db_manager: DatabaseManager) -> None:
+    def __init__(self, db_manager: PostgresDatabaseManager) -> None:
         """
         Initialize repository.
         
@@ -33,7 +32,7 @@ class SQLiteBookRepository(BookRepository):
         """
         self._db = db_manager
 
-    def _row_to_book(self, row: sqlite3.Row) -> Book:
+    def _row_to_book(self, row: dict) -> Book:
         """Convert database row to Book object."""
         return Book(
             id=row["id"],
@@ -57,7 +56,7 @@ class SQLiteBookRepository(BookRepository):
             doi=row["doi"] or "",
             content_type=row["content_type"] or "Текст",
             access_method=row["access_method"] or "непосредственный",
-            created_at=datetime.fromisoformat(row["created_at"]),
+            created_at=row["created_at"] if isinstance(row["created_at"], datetime) else datetime.fromisoformat(row["created_at"]),
             qr_code_path=row["qr_code_path"] or "",
             cover_image_path=row["cover_image_path"] or "",
         )
@@ -72,7 +71,8 @@ class SQLiteBookRepository(BookRepository):
                     udc, bbk, author_mark, reviewers, annotation,
                     abstract, doi, content_type, access_method,
                     qr_code_path, cover_image_path
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
             """
             params = (
                 book.id, book.author, book.title, book.subtitle, book.responsibility,
@@ -89,7 +89,8 @@ class SQLiteBookRepository(BookRepository):
                     udc, bbk, author_mark, reviewers, annotation,
                     abstract, doi, content_type, access_method,
                     qr_code_path, cover_image_path
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
             """
             params = (
                 book.author, book.title, book.subtitle, book.responsibility,
@@ -103,13 +104,13 @@ class SQLiteBookRepository(BookRepository):
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
-            book_id = cursor.lastrowid if book.id == 0 else book.id
+            book_id = cursor.fetchone()["id"]
             logger.info(f"Book added with ID: {book_id}")
             return book_id
 
     def get_by_id(self, id: int) -> Optional[Book]:
         """Get a book by ID."""
-        query = "SELECT * FROM books WHERE id = ?"
+        query = "SELECT * FROM books WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (id,))
@@ -120,7 +121,7 @@ class SQLiteBookRepository(BookRepository):
 
     def get_by_isbn(self, isbn: str) -> Optional[Book]:
         """Get a book by its ISBN."""
-        query = "SELECT * FROM books WHERE isbn = ?"
+        query = "SELECT * FROM books WHERE isbn = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (isbn,))
@@ -143,7 +144,7 @@ class SQLiteBookRepository(BookRepository):
         search_pattern = f"%{query}%"
         sql = """
             SELECT * FROM books
-            WHERE author LIKE ? OR title LIKE ? OR isbn LIKE ?
+            WHERE author LIKE %s OR title LIKE %s OR isbn LIKE %s
             ORDER BY year DESC, title ASC
         """
         with self._db.get_connection() as conn:
@@ -156,13 +157,13 @@ class SQLiteBookRepository(BookRepository):
         """Update an existing book."""
         query = """
             UPDATE books SET
-                author = ?, title = ?, subtitle = ?, responsibility = ?,
-                edition = ?, place = ?, publisher = ?, year = ?, pages = ?,
-                isbn = ?, copyright = ?, udc = ?, bbk = ?, author_mark = ?,
-                reviewers = ?, annotation = ?, abstract = ?, doi = ?,
-                content_type = ?, access_method = ?,
-                qr_code_path = ?, cover_image_path = ?
-            WHERE id = ?
+                author = %s, title = %s, subtitle = %s, responsibility = %s,
+                edition = %s, place = %s, publisher = %s, year = %s, pages = %s,
+                isbn = %s, copyright = %s, udc = %s, bbk = %s, author_mark = %s,
+                reviewers = %s, annotation = %s, abstract = %s, doi = %s,
+                content_type = %s, access_method = %s,
+                qr_code_path = %s, cover_image_path = %s
+            WHERE id = %s
         """
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
@@ -204,7 +205,7 @@ class SQLiteBookRepository(BookRepository):
 
     def delete(self, id: int) -> bool:
         """Delete a book by ID."""
-        query = "DELETE FROM books WHERE id = ?"
+        query = "DELETE FROM books WHERE id = %s"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, (id,))
@@ -218,8 +219,8 @@ class SQLiteBookRepository(BookRepository):
 
     def count(self) -> int:
         """Get total number of books."""
-        query = "SELECT COUNT(*) FROM books"
+        query = "SELECT COUNT(*) as count FROM books"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query)
-            return cursor.fetchone()[0]
+            return cursor.fetchone()["count"]

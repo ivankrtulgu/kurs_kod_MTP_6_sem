@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config.settings import settings
 from core.models.book import Book
-from infrastructure.database.book_repository import SQLiteBookRepository
-from infrastructure.database.connection import DatabaseManager
+from infrastructure.database.book_repository import PostgresBookRepository
+from infrastructure.database.connection import PostgresDatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -173,23 +173,21 @@ class BookService:
         >>> book_id = service.add_book(book)
     """
 
-    def __init__(self, db_manager: Optional[DatabaseManager] = None, db_path: Optional[Path] = None) -> None:
+    def __init__(self, db_manager: Optional[PostgresDatabaseManager] = None) -> None:
         """
         Initialize book service.
 
         Args:
-            db_manager: Optional pre-initialized DatabaseManager.
-            db_path: Optional custom database path. Uses settings default if both are None.
+            db_manager: Optional pre-initialized PostgresDatabaseManager.
         """
         settings.ensure_dirs()
         
         if db_manager:
             manager = db_manager
         else:
-            database_path = db_path or settings.DATABASE_PATH
-            manager = DatabaseManager(database_path)
+            manager = PostgresDatabaseManager(settings.DATABASE_URL)
             
-        self._repository = SQLiteBookRepository(manager)
+        self._repository = PostgresBookRepository(manager)
         logger.info(f"BookService initialized.")
 
     def _validate_book(self, book: Book) -> None:

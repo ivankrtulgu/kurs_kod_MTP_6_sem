@@ -76,6 +76,17 @@ class Reader:
     passport_number: str = ""
     id: int = 0
 
+    @property
+    def full_name(self) -> str:
+        """Returns the full name of the reader formatted as 'Last Name First Name Middle Name'."""
+        parts = [self.last_name, self.first_name, self.middle_name]
+        return " ".join(p for p in parts if p and p.strip())
+
+    @property
+    def is_active(self) -> bool:
+        """Checks if the reader is currently active."""
+        return self.status == "active"
+
 
 @dataclass
 class LoanRecord:

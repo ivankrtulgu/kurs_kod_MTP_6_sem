@@ -19,9 +19,10 @@ plugins_path = os.path.join(pyqt5_path, 'Qt5', 'plugins', 'platforms')
 if os.path.exists(plugins_path):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugins_path
 
-from infrastructure.database.connection import DatabaseManager
-from infrastructure.database.book_repository import SQLiteBookRepository
-from infrastructure.database.inventory_repository import SQLiteInventoryRepository
+from config.settings import settings
+from infrastructure.database.connection import PostgresDatabaseManager
+from infrastructure.database.book_repository import PostgresBookRepository
+from infrastructure.database.inventory_repository import PostgresInventoryRepository
 from core.services.book_service import BookService
 from core.services.inventory_service import InventoryService
 from ui.windows.main_window import MainWindow
@@ -65,14 +66,11 @@ def main():
     app.setOrganizationName("LibraryOCR")
     
     # 1. Infrastructure Layer
-    # DatabaseManager requires the path to the .db file
-    app_dir = Path(__file__).parent
-    db_path = app_dir / "library.db"
-    db_manager = DatabaseManager(db_path)
+    db_manager = PostgresDatabaseManager(settings.DATABASE_URL)
     
     # 2. Repository Layer
-    book_repo = SQLiteBookRepository(db_manager)
-    inventory_repo = SQLiteInventoryRepository(db_manager)
+    book_repo = PostgresBookRepository(db_manager)
+    inventory_repo = PostgresInventoryRepository(db_manager)
     
     # 3. Service Layer
     # Create services and inject repositories

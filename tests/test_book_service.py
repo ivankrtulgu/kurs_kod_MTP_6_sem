@@ -6,7 +6,6 @@ and file operations.
 """
 
 import pytest
-import sqlite3
 from pathlib import Path
 from datetime import datetime
 import sys
@@ -27,15 +26,10 @@ from core.services.book_service import (
     FileOperationError
 )
 from config.settings import settings
+from infrastructure.database.connection import PostgresDatabaseManager
 
 
 # ===== FIXTURES =====
-
-@pytest.fixture
-def test_db_path(tmp_path):
-    """Create temporary database path."""
-    return tmp_path / "test_library.db"
-
 
 @pytest.fixture
 def test_resources_path(tmp_path):
@@ -46,21 +40,12 @@ def test_resources_path(tmp_path):
 
 
 @pytest.fixture
-def book_service(test_db_path, test_resources_path, monkeypatch):
+def book_service(test_resources_path, monkeypatch, mock_db_manager):
     """Create book service with test configuration."""
-    # Initialize database schema
-    schema_path = project_root / "infrastructure" / "database" / "schema.sql"
-    conn = sqlite3.connect(test_db_path)
-    with open(schema_path, "r", encoding="utf-8") as f:
-        conn.executescript(f.read())
-    conn.commit()
-    conn.close()
-    
     # Monkeypatch settings
-    monkeypatch.setattr(settings, 'DATABASE_PATH', test_db_path)
     monkeypatch.setattr(settings, 'RESOURCES_PATH', test_resources_path)
     
-    return BookService(test_db_path)
+    return BookService(db_manager=mock_db_manager)
 
 
 @pytest.fixture
@@ -118,19 +103,12 @@ def sample_cover_image(tmp_path):
 class TestServiceInitialization:
     """Tests for BookService initialization."""
 
-    def test_service_creates_directories(self, test_db_path, tmp_path, monkeypatch):
+    def test_service_creates_directories(self, tmp_path, monkeypatch, mock_db_manager):
         """Test that service ensures directories exist."""
-        # Initialize database
-        schema_path = project_root / "infrastructure" / "database" / "schema.sql"
-        conn = sqlite3.connect(test_db_path)
-        with open(schema_path, "r", encoding="utf-8") as f:
-            conn.executescript(f.read())
-        conn.commit()
-        conn.close()
+        monkeypatch.setattr(settings, 'RESOURCES_PATH', tmp_path / "resources")
+        monkeypatch.setattr(settings, 'TEMP_PATH', tmp_path / "temp")
         
-        monkeypatch.setattr(settings, 'DATABASE_PATH', test_db_path)
-        
-        service = BookService(test_db_path)
+        service = BookService(db_manager=mock_db_manager)
         assert service is not None
 
     def test_service_initializes_repository(self, book_service):

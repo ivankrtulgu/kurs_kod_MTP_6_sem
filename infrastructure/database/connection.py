@@ -2,6 +2,8 @@
 
 import logging
 import sqlite3
+import psycopg2
+import psycopg2.extras
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
@@ -9,7 +11,7 @@ from typing import Generator
 logger = logging.getLogger(__name__)
 
 
-class DatabaseManager:
+class SQLiteDatabaseManager:
     """
     Manager for SQLite database connections.
     
@@ -49,3 +51,44 @@ class DatabaseManager:
             if conn:
                 conn.close()
                 logger.debug("Database connection closed")
+
+
+class PostgresDatabaseManager:
+    """
+    Manager for PostgreSQL database connections.
+    
+    Provides context manager for safe connection handling.
+    """
+
+    def __init__(self, db_url: str) -> None:
+        """
+        Initialize database manager.
+        
+        Args:
+            db_url: Connection URL for PostgreSQL database.
+        """
+        self.db_url = db_url
+
+    @contextmanager
+    def get_connection(self) -> Generator[psycopg2.extensions.connection, None, None]:
+        """
+        Get database connection context manager.
+        
+        Yields:
+            psycopg2.extensions.connection: Database connection.
+            
+        Raises:
+            psycopg2.DatabaseError: On connection errors.
+        """
+        conn = None
+        try:
+            conn = psycopg2.connect(self.db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+            logger.debug("Connected to PostgreSQL database")
+            yield conn
+        except psycopg2.DatabaseError as e:
+            logger.error(f"PostgreSQL database error: {e}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+                logger.debug("PostgreSQL database connection closed")

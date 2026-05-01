@@ -6,10 +6,10 @@ Provides a widget for adding and editing library readers in an MDI environment.
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFormLayout, QComboBox, QTextEdit, QMessageBox, QGroupBox
+    QLineEdit, QPushButton, QFormLayout, QComboBox, QTextEdit, QMessageBox, QGroupBox, QDateEdit
 )
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDate
 from core.services.inventory_service import InventoryService
 from core.models.inventory import Reader
 from ui.style_manager import StyleManager
@@ -69,24 +69,28 @@ class AddReaderWidget(QWidget):
         form_layout.addRow("Email:", self.email_input)
 
         # Personal details
-        self.birth_date_input = QLineEdit()
-        self.birth_date_input.setPlaceholderText("ГГГГ-ММ-ДД")
+        self.birth_date_input = QDateEdit()
+        self.birth_date_input.setCalendarPopup(True)
+        self.birth_date_input.setDisplayFormat("dd.MM.yyyy")
+        self.birth_date_input.setDate(QDate.currentDate())
         form_layout.addRow("Дата рождения:", self.birth_date_input)
-
+        
         self.passport_series_input = QLineEdit()
         self.passport_series_input.setPlaceholderText("Серия")
         form_layout.addRow("Серия паспорта:", self.passport_series_input)
-
+        
         self.passport_number_input = QLineEdit()
         self.passport_number_input.setPlaceholderText("Номер")
         form_layout.addRow("Номер паспорта:", self.passport_number_input)
-
+        
         self.address_input = QLineEdit()
         self.address_input.setPlaceholderText("Улица, дом, квартира")
         form_layout.addRow("Адрес проживания:", self.address_input)
-
-        self.reg_date_input = QLineEdit()
-        self.reg_date_input.setPlaceholderText("ГГГГ-ММ-ДД")
+        
+        self.reg_date_input = QDateEdit()
+        self.reg_date_input.setCalendarPopup(True)
+        self.reg_date_input.setDisplayFormat("dd.MM.yyyy")
+        self.reg_date_input.setDate(QDate.currentDate())
         form_layout.addRow("Дата регистрации:", self.reg_date_input)
 
         # Status
@@ -106,11 +110,8 @@ class AddReaderWidget(QWidget):
         btn_layout.setSpacing(10)
         self.btn_save = QPushButton("Сохранить")
         self.btn_save.clicked.connect(self._handle_save)
-        self.btn_close = QPushButton("Закрыть")
-        self.btn_close.clicked.connect(self._close_window)
-
+        
         btn_layout.addStretch()
-        btn_layout.addWidget(self.btn_close)
         btn_layout.addWidget(self.btn_save)
         layout.addLayout(btn_layout)
 
@@ -122,13 +123,32 @@ class AddReaderWidget(QWidget):
                 self.last_name_input.setText(reader.last_name)
                 self.first_name_input.setText(reader.first_name)
                 self.middle_name_input.setText(reader.middle_name)
-                self.birth_date_input.setText(reader.birth_date)
+                
+                # Handle birth date
+                if reader.birth_date:
+                    try:
+                        # Expects ISO YYYY-MM-DD from DB
+                        date_obj = QDate.fromString(reader.birth_date, "yyyy-MM-dd")
+                        if not date_obj.isNull():
+                            self.birth_date_input.setDate(date_obj)
+                    except:
+                        pass
+                        
                 self.passport_series_input.setText(reader.passport_series)
                 self.passport_number_input.setText(reader.passport_number)
                 self.phone_input.setText(reader.phone)
                 self.email_input.setText(reader.email)
                 self.address_input.setText(reader.home_address)
-                self.reg_date_input.setText(reader.registration_date)
+                
+                # Handle registration date
+                if reader.registration_date:
+                    try:
+                        date_obj = QDate.fromString(reader.registration_date, "yyyy-MM-dd")
+                        if not date_obj.isNull():
+                            self.reg_date_input.setDate(date_obj)
+                    except:
+                        pass
+                        
                 self.status_combo.setCurrentText(reader.status)
                 self.notes_input.setPlainText(reader.notes)
         except Exception as e:
@@ -140,21 +160,27 @@ class AddReaderWidget(QWidget):
             last_name = self.last_name_input.text().strip()
             first_name = self.first_name_input.text().strip()
             middle_name = self.middle_name_input.text().strip()
-            birth_date = self.birth_date_input.text().strip()
+            
+            # Convert QDate to ISO string (YYYY-MM-DD) for the DB
+            birth_date = self.birth_date_input.date().toString("yyyy-MM-dd")
+            
             passport_series = self.passport_series_input.text().strip()
             passport_number = self.passport_number_input.text().strip()
             phone = self.phone_input.text().strip()
             email = self.email_input.text().strip()
             address = self.address_input.text().strip()
-            reg_date = self.reg_date_input.text().strip()
+            
+            # Convert QDate to ISO string (YYYY-MM-DD) for the DB
+            reg_date = self.reg_date_input.date().toString("yyyy-MM-dd")
+            
             status = self.status_combo.currentText()
             notes = self.notes_input.toPlainText().strip()
-
+            
             if not last_name or not first_name:
                 if self._main_window:
                     self._main_window.notify("Фамилия и Имя обязательны для заполнения", "Ошибка ввода", "warning")
                 return
-
+            
             if self._reader_id:
                 # Update
                 reader = Reader(
@@ -194,7 +220,7 @@ class AddReaderWidget(QWidget):
                 QMessageBox.information(self, "Успех", "Читатель добавлен")
             
             self._close_window()
-
+        
         except Exception as e:
             if self._main_window:
                 self._main_window.notify(f"Ошибка при сохранении: {e}", "Ошибка системы", "error")

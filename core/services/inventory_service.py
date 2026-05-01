@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 
 from core.models.inventory import BookItem, LoanRecord, ItemStatus, Reader
-from infrastructure.database.inventory_repository import SQLiteInventoryRepository
+from infrastructure.database.inventory_repository import PostgresInventoryRepository
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class InventoryService:
     Service for managing the library's physical inventory and circulation.
     """
 
-    def __init__(self, repository: SQLiteInventoryRepository) -> None:
+    def __init__(self, repository: PostgresInventoryRepository) -> None:
         self._repo = repository
 
     # --- Fund Management ---
