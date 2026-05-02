@@ -327,14 +327,9 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
             )
             if reply != QMessageBox.Yes:
                 return
-
+        
         # Close parent subwindow if exists
-        from PyQt5.QtWidgets import QMdiSubWindow
-        parent = self.parent()
-        if isinstance(parent, QMdiSubWindow):
-            parent.close()
-        else:
-            self.close()
+        self._close_window()
 
     def _has_data(self) -> bool:
         """Check if form has any data entered."""

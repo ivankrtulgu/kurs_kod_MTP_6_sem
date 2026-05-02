@@ -79,11 +79,8 @@ class IssueBookWidget(QWidget):
         btn_layout.setSpacing(10)
         self.btn_confirm = QPushButton("Выдать")
         self.btn_confirm.clicked.connect(self._handle_confirm)
-        self.btn_close = QPushButton("Закрыть")
-        self.btn_close.clicked.connect(self.close)
-
+        
         btn_layout.addStretch()
-        btn_layout.addWidget(self.btn_close)
         btn_layout.addWidget(self.btn_confirm)
         layout.addLayout(btn_layout)
 
@@ -111,6 +108,15 @@ class IssueBookWidget(QWidget):
         self.inv_num_input.setText(inv_num)
         self.inv_num_input.setReadOnly(True) # Prevent changing when opened from card
 
+    def _close_window(self):
+        """Close the MDI subwindow containing this widget."""
+        from PyQt5.QtWidgets import QMdiSubWindow
+        parent = self.parent()
+        if isinstance(parent, QMdiSubWindow):
+            parent.close()
+        else:
+            self.close()
+
     def _handle_confirm(self):
         try:
             # Validate inputs
@@ -123,7 +129,7 @@ class IssueBookWidget(QWidget):
 
             self._service.issue_item_by_inv(inv_num, reader_id, days)
             QMessageBox.information(self, "Успех", "Книга успешно выдана")
-            self.close()
+            self._close_window()
 
         except ValueError as e:
             QMessageBox.critical(self, "Ошибка ввода", str(e))

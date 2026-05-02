@@ -339,23 +339,9 @@ class OcrWindow(QWidget):
             }
         """)
         right_layout.addWidget(self.btn_apply)
-
+        
         right_layout.addStretch()
-
-        self.btn_close = QPushButton(" Закрыть")
-        self.btn_close.clicked.connect(self.close)
-        self.btn_close.setStyleSheet("""
-            QPushButton {
-                background-color: #f7fafc;
-                border-color: #e2e8f0;
-            }
-            QPushButton:hover {
-                background-color: #edf2f7;
-                border-color: #cbd5e0;
-            }
-        """)
-        right_layout.addWidget(self.btn_close)
-
+        
         main_layout.addLayout(right_layout, stretch=1)
 
         # ===== Подключение сигналов =====
@@ -559,19 +545,22 @@ class OcrWindow(QWidget):
             "в папку: temp/ocr_regions/"
         )
 
-    def _on_apply(self):
-        """Применить данные и закрыть окно."""
-        ocr_data = self._get_recognized_data()
-        if ocr_data:
-            self.ocr_data_ready.emit(ocr_data)
-        
-        # Закрыть родительское подокно
+    def _close_window(self):
+        """Close the MDI subwindow containing this widget."""
         from PyQt5.QtWidgets import QMdiSubWindow
         parent = self.parent()
         if isinstance(parent, QMdiSubWindow):
             parent.close()
         else:
             self.close()
+
+    def _on_apply(self):
+        """Применить данные и закрыть окно."""
+        ocr_data = self._get_recognized_data()
+        if ocr_data:
+            self.ocr_data_ready.emit(ocr_data)
+        
+        self._close_window()
         
         # Дополнительное уведомление для уверенности в перенаправлении
         print(" OCR data emitted, closing OCR window...")

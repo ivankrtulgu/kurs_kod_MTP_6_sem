@@ -11,11 +11,14 @@ class StyleManager:
         QMainWindow {
             background-color: #f5f9f6;
         }
+        QMdiArea  {
+            background-color: #f5f9f6;
+        }
         QWidget {
             background-color: #f5f9f6;
             color: #2d3748;
             font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 13px;
+            font-size: 11px;
         }
         QGroupBox {
             background-color: #ffffff;
@@ -40,7 +43,7 @@ class StyleManager:
             padding: 10px 20px;
             color: #4a5568;
             font-weight: 500;
-            font-size: 13px;
+            font-size: 11px;
         }
         QPushButton:hover {
             background-color: #f0fff4;
@@ -62,7 +65,7 @@ class StyleManager:
             color: #4a5568;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            font-size: 13px;
+            font-size: 11px;
         }
         QComboBox:hover {
             border-color: #68a385;
@@ -115,7 +118,7 @@ class StyleManager:
         }
         QLabel {
             color: #4a5568;
-            font-size: 13px;
+            font-size: 11px;
         }
         QMenu {
             background-color: #ffffff;
@@ -137,7 +140,7 @@ class StyleManager:
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             gridline-color: #f0f4f1;
-            font-size: 12px;
+            font-size: 11px;
         }
         QTableWidget::item {
             padding: 8px;

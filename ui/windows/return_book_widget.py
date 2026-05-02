@@ -57,11 +57,8 @@ class ReturnBookWidget(QWidget):
         btn_layout.setSpacing(10)
         self.btn_confirm = QPushButton("Вернуть")
         self.btn_confirm.clicked.connect(self._handle_confirm)
-        self.btn_close = QPushButton("Закрыть")
-        self.btn_close.clicked.connect(self.close)
-
+        
         btn_layout.addStretch()
-        btn_layout.addWidget(self.btn_close)
         btn_layout.addWidget(self.btn_confirm)
         layout.addLayout(btn_layout)
 
@@ -69,6 +66,15 @@ class ReturnBookWidget(QWidget):
         """Pre-fill the form with a specific item's inventory number."""
         self.inv_num_input.setText(inv_num)
         self.inv_num_input.setReadOnly(True)
+
+    def _close_window(self):
+        """Close the MDI subwindow containing this widget."""
+        from PyQt5.QtWidgets import QMdiSubWindow
+        parent = self.parent()
+        if isinstance(parent, QMdiSubWindow):
+            parent.close()
+        else:
+            self.close()
 
     def _handle_confirm(self):
         try:
@@ -81,7 +87,7 @@ class ReturnBookWidget(QWidget):
             self._service.return_item_by_inv(inv_num, condition)
             
             QMessageBox.information(self, "Успех", "Книга успешно возвращена")
-            self.close()
+            self._close_window()
 
         except ValueError as e:
             QMessageBox.critical(self, "Ошибка ввода", str(e))
