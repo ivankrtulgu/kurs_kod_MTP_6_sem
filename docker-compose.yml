@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15-alpine
+    container_name: library_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-library_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    networks:
+      - library_network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-library_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
+
+  # Основное приложение (для тестов и разработки)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: library_app
+    environment:
+      # PostgreSQL подключение
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-root}@postgres:5432/${POSTGRES_DB:-library_db}
+
+      # Пути к ресурсам
+      RESOURCES_PATH: /app/resources
+      TEMP_PATH: /app/temp
+
+      # QR соль
+      QR_SALT: ${QR_SALT:-lib_unique_salt_2026}
+
+      # Для GUI (если нужно)
+      DISPLAY: ${DISPLAY:-:99}
+      QT_QPA_PLATFORM: offscreen
+
+    volumes:
+      # Монтируем код для разработки
+      - .:/app
+      # Персистентные данные
+      - library_resources:/app/resources
+      - library_temp:/app/temp
+      - library_logs:/app/logs
+
+    networks:
+      - library_network
+
+    # По умолчанию запускаем тесты
+    command: pytest -v
+
+    # Зависимости
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # PgAdmin для управления PostgreSQL (опционально)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: library_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@library.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+
+    networks:
+      - library_network
+
+    depends_on:
+      - postgres
+
+    restart: unless-stopped
+
+    profiles:
+      - tools
+
+# Volumes для персистентности данных
+volumes:
+  library_resources:
+    driver: local
+  library_temp:
+    driver: local
+  library_logs:
+    driver: local
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# Сеть для взаимодействия контейнеров
+networks:
+  library_network:
+    driver: bridge

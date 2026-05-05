@@ -17,8 +17,7 @@
 ### Основные технологии
 - **Python 3.11** — язык программирования
 - **PyQt5** — графический интерфейс пользователя
-- **SQLite** — встроенная база данных
-- **PostgreSQL** — опциональная СУБД для продакшена
+- **PostgreSQL** — реляционная база данных
 
 ### Библиотеки
 - `qrcode` — генерация QR-кодов
@@ -77,6 +76,20 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### Запуск с Docker
+
+Система поддерживает контейнеризацию с помощью Docker:
+
+```bash
+# Запуск тестов в Docker
+docker-compose up --build
+
+# Запуск с PostgreSQL
+docker-compose up -d
+
+# Подробнее см. docs/DOCKER.md
+```
+
 ### Запуск тестов
 
 ```bash
@@ -88,6 +101,9 @@ pytest --cov=. --cov-report=html
 
 # Конкретный модуль
 pytest tests/test_book_service.py
+
+# В Docker
+docker-compose run --rm app pytest -v
 ```
 
 ## Функциональные возможности
@@ -123,19 +139,24 @@ pytest tests/test_book_service.py
 
 ## Конфигурация
 
-Основные настройки находятся в `config/settings.py`:
+Основные настройки находятся в файле `.env`:
 
-```python
-# База данных
-DATABASE_TYPE = "sqlite"  # или "postgresql"
-SQLITE_DB_PATH = "library.db"
+```env
+# PostgreSQL Database
+DATABASE_URL=postgresql://postgres:root@localhost:5432/library_db
 
 # Ресурсы
-RESOURCES_DIR = "resources"
-QR_CODES_DIR = "resources/qr_codes"
+RESOURCES_PATH=resources
+TEMP_PATH=temp
 
-# Выдача книг
-DEFAULT_LOAN_DAYS = 14
+# QR-коды
+QR_SALT=lib_unique_salt_2026
+```
+
+Создайте `.env` файл на основе `.env.example`:
+
+```bash
+cp .env.example .env
 ```
 
 ## Тестирование
@@ -148,6 +169,17 @@ DEFAULT_LOAN_DAYS = 14
 - **Тесты сервисов** — проверка бизнес-логики
 
 Подробнее см. [Документация по тестированию](docs/testing.md)
+
+## Docker
+
+Система поддерживает контейнеризацию для разработки и тестирования:
+
+- Изолированное окружение
+- Автоматическая настройка PostgreSQL
+- Воспроизводимые тесты
+- Готовность к CI/CD
+
+Подробнее см. [Docker Deployment Guide](docs/DOCKER.md)
 
 ## API документация
 
