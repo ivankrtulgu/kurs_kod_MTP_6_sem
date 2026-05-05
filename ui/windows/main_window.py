@@ -3,7 +3,9 @@
 
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QMdiSubWindow, QMdiArea
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from typing import Any, Callable
+from pathlib import Path
 from ui.generated.ui_main_window import Ui_MainWindow
 
 from core.services.book_service import BookService
@@ -43,6 +45,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         self.setStyleSheet(StyleManager.get_stylesheet())
+
+        # Set window icon
+        icon_path = Path(__file__).parent.parent.parent / "resources" / "icons" / "icon-open-book.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
         # Standardize main layout
         self.verticalLayout.setSpacing(10)
