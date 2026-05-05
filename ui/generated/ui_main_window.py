@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\01\Тулгу\3 курс\6 семестр\MTP_Kurs\proj_lib\library_app\ui\forms\main_window.ui'
+# Form implementation generated from reading ui file 'ui\forms\main_window.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -9,7 +9,6 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QBrush, QColor
 
 
 class Ui_MainWindow(object):
@@ -42,7 +41,6 @@ class Ui_MainWindow(object):
         self.mdi_area.setTabsClosable(True)
         self.mdi_area.setTabsMovable(True)
         self.mdi_area.setObjectName("mdi_area")
-        self.mdi_area.setBackground(QBrush(QColor("#d7e6da")))
         self.verticalLayout.addWidget(self.mdi_area)
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -116,3 +114,13 @@ class Ui_MainWindow(object):
         self.action_ocr.setToolTip(_translate("MainWindow", "Распознать текст с изображения"))
         self.action_about.setText(_translate("MainWindow", "О программе"))
         self.action_about.setToolTip(_translate("MainWindow", "Информация о приложении"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())

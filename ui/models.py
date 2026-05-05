@@ -198,11 +198,11 @@ class ActiveLoansTableModel(QAbstractTableModel):
         all_loans = self._inventory_service.get_all_loans()
         now = datetime.now()
         
-        if filter_type == "Active":
+        if filter_type == "Активные":
             loans = [loan for loan in all_loans if not loan.return_date]
-        elif filter_type == "Closed":
+        elif filter_type == "Закрытые":
             loans = [loan for loan in all_loans if loan.return_date]
-        elif filter_type == "Overdue":
+        elif filter_type == "Просроченные":
             loans = [loan for loan in all_loans if not loan.return_date and loan.due_date < now]
         else: 
             loans = all_loans

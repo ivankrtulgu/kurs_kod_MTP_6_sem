@@ -46,6 +46,7 @@ from ui.style_manager import StyleManager
 
 class OcrWindow(QWidget):
     """Окно OCR распознавания для MDI (на основе TestOcrWindow)."""
+    WINDOW_TITLE = "OCR распознавание"
 
     # Signal when OCR data is ready
     ocr_data_ready = pyqtSignal(dict)
@@ -156,9 +157,9 @@ class OcrWindow(QWidget):
         
         self.combo_lang = QComboBox()
         self.combo_lang.addItem("Русский", "rus")
-        self.combo_lang.addItem("English", "eng")
+        self.combo_lang.addItem("Английский", "eng")
         self.combo_lang.addItem("Русский + English (смешанный)", "rus+eng")
-        self.combo_lang.addItem("English + Русский (приоритет EN)", "eng+rus")
+        self.combo_lang.addItem("Английский + Русский (приоритет EN)", "eng+rus")
         self.combo_lang.addItem("Цифры и символы", "digits")
         self.combo_lang.setCurrentIndex(2)  # По умолчанию rus+eng
         lang_layout.addWidget(self.combo_lang)

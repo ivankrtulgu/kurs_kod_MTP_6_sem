@@ -17,6 +17,7 @@ class IssueBookWidget(QWidget):
     Widget for issuing a book item to a reader.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Выдача экземпляра"
 
     def __init__(self, service: InventoryService, parent=None):
         super().__init__(parent)

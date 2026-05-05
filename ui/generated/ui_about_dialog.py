@@ -72,7 +72,7 @@ class Ui_AboutDialog(object):
 "- Поиск по каталогу\n"
 "\n"
 "(c) 2024"))
-        self.btn_ok.setText(_translate("AboutDialog", "OK"))
+        self.btn_ok.setText(_translate("AboutDialog", "ОК"))
 
 
 if __name__ == "__main__":

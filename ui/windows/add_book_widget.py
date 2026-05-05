@@ -12,6 +12,7 @@ from ui.windows.ocr_window import OcrWindow
 
 class AddBookWidget(QWidget, Ui_AddBookDialog):
     """Виджет добавления книги с валидацией и интеграцией сервиса (для MDI)."""
+    WINDOW_TITLE = "Добавление книги"
 
     def __init__(
         self,

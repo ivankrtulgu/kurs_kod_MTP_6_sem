@@ -14,6 +14,7 @@ class ReaderListWidget(QWidget):
     Widget for displaying the reader table.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Список читателей"
 
     # Signal to notify the parent window that data was refreshed
     data_refreshed = pyqtSignal()

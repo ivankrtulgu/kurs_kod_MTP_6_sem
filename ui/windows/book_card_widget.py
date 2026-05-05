@@ -182,6 +182,7 @@ class BookPrintSettingsWidget(QWidget):
 
 class BookCardWidget(QWidget, Ui_BookCardWidget):
     """Виджет карточки книги с интеграцией репозитория."""
+    WINDOW_TITLE = "Карточка книги"
 
     def __init__(
         self,

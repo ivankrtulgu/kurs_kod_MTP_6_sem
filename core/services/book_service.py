@@ -51,7 +51,7 @@ class ISBNValidator:
             tuple[bool, str | None]: (is_valid, error_message)
         """
         if not isbn:
-            return False, "ISBN is required"
+            return False, "ISBN обязателен"
         
         # Remove hyphens and spaces
         clean_isbn = re.sub(r'[-\s]', '', isbn)
@@ -62,7 +62,7 @@ class ISBNValidator:
         elif len(clean_isbn) == 13:
             return ISBNValidator._validate_isbn13(clean_isbn)
         else:
-            return False, f"ISBN must be 10 or 13 digits, got {len(clean_isbn)}"
+            return False, f"ISBN должен содержать 10 или 13 цифр, получено: {len(clean_isbn)}"
     
     @staticmethod
     def _validate_isbn10(isbn: str) -> tuple[bool, Optional[str]]:
@@ -83,7 +83,7 @@ class ISBNValidator:
         # Check format: 9 digits + (digit or X)
         pattern = r'^[0-9]{9}[0-9X]$'
         if not re.match(pattern, isbn, re.IGNORECASE):
-            return False, "ISBN-10 must be 9 digits followed by digit or X"
+            return False, "ISBN-10 должен состоять из 9 цифр и цифры или X"
         
         # Convert to list of values (X = 10)
         digits = []
@@ -100,7 +100,7 @@ class ISBNValidator:
         # Check if divisible by 11
         if total % 11 != 0:
             expected_check = (11 - (sum(d * w for d, w in zip(digits[:9], weights[:9])) % 11)) % 11
-            return False, f"Invalid ISBN-10 check digit. Expected {expected_check}, got {digits[9]}"
+            return False, f"Неверная контрольная цифра ISBN-10. Ожидалось: {expected_check}, получено: {digits[9]}"
         
         return True, None
     
@@ -122,11 +122,11 @@ class ISBNValidator:
         """
         # Check format: 13 digits
         if not isbn.isdigit():
-            return False, "ISBN-13 must contain only digits"
+            return False, "ISBN-13 должен содержать только цифры"
         
         # Check prefix
         if not isbn.startswith(('978', '979')):
-            return False, "ISBN-13 must start with 978 or 979"
+            return False, "ISBN-13 должен начинаться с 978 или 979"
         
         # Convert to list of integers
         digits = [int(d) for d in isbn]
@@ -140,7 +140,7 @@ class ISBNValidator:
             # Calculate expected check digit
             sum_without_check = sum(d * w for d, w in zip(digits[:12], weights[:12]))
             expected_check = (10 - (sum_without_check % 10)) % 10
-            return False, f"Invalid ISBN-13 check digit. Expected {expected_check}, got {digits[12]}"
+            return False, f"Неверная контрольная цифра ISBN-13. Ожидалось: {expected_check}, получено: {digits[12]}"
         
         return True, None
 
@@ -210,40 +210,40 @@ class BookService:
 
         # Validate author
         if not book.author or not book.author.strip():
-            errors.append("Author is required")
+            errors.append("Автор обязателен")
 
         # Validate title
         if not book.title or not book.title.strip():
-            errors.append("Title is required")
+            errors.append("Название обязательно")
 
         # Validate year (1900-2100) - also validated in Model.__post_init__()
         if not isinstance(book.year, int) or not (1900 <= book.year <= 2100):
-            errors.append(f"Year must be between 1900 and 2100, got {book.year}")
+            errors.append(f"Год должен быть в диапазоне 1900-2100, получено: {book.year}")
 
         # Validate pages (> 0) - also validated in Model.__post_init__()
         if not isinstance(book.pages, int) or book.pages <= 0:
-            errors.append(f"Pages must be greater than 0, got {book.pages}")
+            errors.append(f"Количество страниц должно быть больше 0, получено: {book.pages}")
 
         # Validate ISBN (format and check digit) - also validated in Model.__post_init__()
         if not book.isbn or not book.isbn.strip():
-            errors.append("ISBN is required")
+            errors.append("ISBN обязателен")
         else:
             is_valid, error = ISBNValidator.validate(book.isbn)
             if not is_valid:
-                errors.append(f"Invalid ISBN: {error}")
+                errors.append(f"Недопустимый ISBN: {error}")
 
         # Validate place
         if not book.place or not book.place.strip():
-            errors.append("Place of publication is required")
+            errors.append("Место издания обязательно")
 
         # Validate publisher
         if not book.publisher or not book.publisher.strip():
-            errors.append("Publisher is required")
+            errors.append("Издательство обязательно")
 
         if errors:
             error_msg = "; ".join(errors)
             logger.warning(f"Book validation failed: {error_msg}")
-            raise ValidationError(f"Validation failed: {error_msg}")
+            raise ValidationError(f"Ошибка валидации: {error_msg}")
 
         logger.debug(f"Book validation passed for: {book.title}")
 

@@ -19,6 +19,7 @@ class AddItemsWidget(QWidget):
     Widget for adding multiple physical copies of a book.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Добавление экземпляров"
     
     # Signal emitted when items are successfully added
     items_added = pyqtSignal()

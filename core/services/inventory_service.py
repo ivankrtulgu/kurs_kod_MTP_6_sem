@@ -93,15 +93,15 @@ class InventoryService:
         reader = self._repo.get_reader_by_id(reader_id)
 
         if not item:
-            raise ValueError(f"Book item with ID {item_id} not found.")
+            raise ValueError(f"Экземпляр книги с ID {item_id} не найден.")
         if not reader:
-            raise ValueError(f"Reader with ID {reader_id} not found.")
+            raise ValueError(f"Читатель с ID {reader_id} не найден.")
         
         if item.status != ItemStatus.AVAILABLE:
-            raise ValueError(f"Item {item.inventory_number} is not available (Status: {item.status.value}).")
+            raise ValueError(f"Экземпляр {item.inventory_number} недоступен (Статус: {item.status.value}).")
         
         if not reader.is_active:
-            raise ValueError(f"Reader {reader.full_name} is not active.")
+            raise ValueError(f"Читатель {reader.full_name} не активен.")
 
         # Create Loan Record
         issue_date = datetime.now()
@@ -112,7 +112,7 @@ class InventoryService:
             reader_id=reader_id,
             issue_date=issue_date,
             due_date=due_date,
-            condition_on_issue="Good" # Default condition
+            condition_on_issue="Хорошо" # Default condition
         )
         
         loan_id = self._repo.create_loan(loan)
@@ -131,7 +131,7 @@ class InventoryService:
         """
         active_loan = self._repo.find_active_loan(item_id)
         if not active_loan:
-            raise ValueError(f"No active loan found for item ID {item_id}.")
+            raise ValueError(f"Активная выдача для экземпляра с ID {item_id} не найдена.")
 
         return_date = datetime.now()
         
@@ -154,10 +154,10 @@ class InventoryService:
         """
         item = self._repo.get_item_by_id(item_id)
         if not item:
-            raise ValueError(f"Item with ID {item_id} not found.")
+            raise ValueError(f"Экземпляр с ID {item_id} не найден.")
 
         if item.status == ItemStatus.LOANED:
-            raise ValueError(f"Cannot change status of item {item.inventory_number} while it is LOANED. Please return it first.")
+            raise ValueError(f"Нельзя изменить статус экземпляра {item.inventory_number}, пока он выдан. Сначала оформите возврат.")
 
         success = self._repo.update_item_status(item_id, new_status)
         if success:

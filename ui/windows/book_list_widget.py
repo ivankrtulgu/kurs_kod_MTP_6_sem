@@ -25,6 +25,7 @@ class NumericTableWidgetItem(QTableWidgetItem):
 
 class BookListWidget(QWidget, Ui_BookListWidget):
     """Виджет списка книг с интеграцией репозитория."""
+    WINDOW_TITLE = "Список книг"
 
     # Signal to notify parent when window should be closed
     close_requested = pyqtSignal()

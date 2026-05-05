@@ -17,6 +17,7 @@ class InventoryListWidget(QWidget):
     Widget for displaying the inventory as a hierarchical tree.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Список экземпляров"
 
     # Status translation map
     STATUS_MAP = {

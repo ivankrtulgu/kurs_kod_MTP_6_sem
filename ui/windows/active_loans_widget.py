@@ -16,6 +16,7 @@ class ActiveLoansWidget(QWidget):
     Widget for displaying the list of active loans.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Активные выдачи"
 
     data_refreshed = pyqtSignal()
 
@@ -41,8 +42,8 @@ class ActiveLoansWidget(QWidget):
         
         filter_label = QLabel("Фильтр:")
         self.combo_filter = QComboBox()
-        self.combo_filter.addItems(["All", "Active", "Closed", "Overdue"])
-        self.combo_filter.setCurrentText("Active")
+        self.combo_filter.addItems(["Все", "Активные", "Закрытые", "Просроченные"])
+        self.combo_filter.setCurrentText("Активные")
         self.combo_filter.currentTextChanged.connect(self.refresh_list)
         
         filter_layout.addWidget(filter_label)

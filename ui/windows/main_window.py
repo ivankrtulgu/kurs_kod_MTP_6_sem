@@ -102,7 +102,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusbar.showMessage(f"Ошибка: {e}", 5000)
 
-    def notify(self, message: str, title: str = "System", msg_type: str = "info", timeout: int = 5000):
+    def notify(self, message: str, title: str = "Система", msg_type: str = "info", timeout: int = 5000):
         """
         Simple non-blocking notification using the status bar.
         """
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if hasattr(self, 'mainToolBar'):
             toolbar = self.mainToolBar
         else:
-            toolbar = QToolBar("Management Toolbar")
+            toolbar = QToolBar("Панель управления")
             self.addToolBar(toolbar)
 
         # Section: Clients
@@ -166,7 +166,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Create new
         new_widget = widget_class(*args, **kwargs)
-        title = widget_class.__name__.replace("Widget", "")
+        title = getattr(widget_class, 'WINDOW_TITLE', widget_class.__name__.replace("Widget", ""))
         sub_window = self._create_sub_window(new_widget, title)
         
         self.mdi_area.addSubWindow(sub_window)
@@ -458,7 +458,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # Simple export to text format
             from PyQt5.QtWidgets import QFileDialog
             file_path, _ = QFileDialog.getSaveFileName(
-                self, "Экспорт каталога", "", "Text files (*.txt);;All files (*)"
+                self, "Экспорт каталога", "", "Текстовые файлы (*.txt);;Все файлы (*)"
             )
             if file_path:
                 with open(file_path, 'w', encoding='utf-8') as f:

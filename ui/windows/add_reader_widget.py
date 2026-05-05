@@ -19,6 +19,15 @@ class AddReaderWidget(QWidget):
     Widget for adding or editing a library reader.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Добавление читателя"
+
+    STATUS_MAP = {
+        "active": "Активен",
+        "blocked": "Заблокирован",
+        "expired": "Просрочен"
+    }
+    REVERSE_STATUS_MAP = {v: k for k, v in STATUS_MAP.items()}
+
 
     def __init__(self, service: InventoryService, reader_id: int | None = None, main_window=None, parent=None):
         super().__init__(parent)
@@ -95,7 +104,7 @@ class AddReaderWidget(QWidget):
 
         # Status
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["active", "blocked", "expired"])
+        self.status_combo.addItems(list(self.STATUS_MAP.values()))
         form_layout.addRow("Статус:", self.status_combo)
 
         # Notes
@@ -149,7 +158,7 @@ class AddReaderWidget(QWidget):
                     except:
                         pass
                         
-                self.status_combo.setCurrentText(reader.status)
+                self.status_combo.setCurrentText(self.STATUS_MAP.get(reader.status, reader.status))
                 self.notes_input.setPlainText(reader.notes)
         except Exception as e:
             if self._main_window:
@@ -173,7 +182,8 @@ class AddReaderWidget(QWidget):
             # Convert QDate to ISO string (YYYY-MM-DD) for the DB
             reg_date = self.reg_date_input.date().toString("yyyy-MM-dd")
             
-            status = self.status_combo.currentText()
+            status_text = self.status_combo.currentText()
+            status = self.REVERSE_STATUS_MAP.get(status_text, status_text)
             notes = self.notes_input.toPlainText().strip()
             
             if not last_name or not first_name:

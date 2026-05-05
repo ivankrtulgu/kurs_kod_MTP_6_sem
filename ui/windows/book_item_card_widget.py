@@ -179,12 +179,12 @@ class PrintSettingsWidget(QWidget):
         }
 
 class BookItemCardWidget(QWidget):
-
     """
     Professional card for a physical book item.
     Replicates the BookCardWidget design.
     """
-
+    WINDOW_TITLE = "Карточка экземпляра"
+    
     STATUS_MAP = {
         ItemStatus.AVAILABLE: "Доступен",
         ItemStatus.LOANED: "Выдан",

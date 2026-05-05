@@ -22,6 +22,7 @@ class NumericTableWidgetItem(QTableWidgetItem):
 
 class SearchWidget(QWidget, Ui_SearchDialog):
     """Виджет поиска по каталогу с интеграцией репозитория (для MDI)."""
+    WINDOW_TITLE = "Поиск книг"
 
     # Signal when book is opened from search
     book_open_requested = pyqtSignal(int)
