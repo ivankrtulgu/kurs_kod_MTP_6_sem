@@ -46,19 +46,19 @@ class TestISBN10Validation:
         """Test ISBN-10 with wrong check digit."""
         is_valid, error = ISBNValidator.validate("2-266-11156-5")  # Should be 6
         assert is_valid is False
-        assert "check digit" in error.lower()
+        assert "контрольная цифра" in error.lower()
 
     def test_invalid_isbn10_too_short(self):
         """Test ISBN-10 that is too short."""
         is_valid, error = ISBNValidator.validate("2-266-1115-6")
         assert is_valid is False
-        assert "digits" in error.lower()
+        assert "цифр" in error.lower()
 
     def test_invalid_isbn10_too_long(self):
         """Test ISBN-10 that is too long."""
         is_valid, error = ISBNValidator.validate("2-266-111567-6")
         assert is_valid is False
-        assert "digits" in error.lower()
+        assert "цифр" in error.lower()
 
     def test_invalid_isbn10_non_digit_characters(self):
         """Test ISBN-10 with non-digit characters (except X)."""
@@ -104,31 +104,31 @@ class TestISBN13Validation:
         """Test ISBN-13 with wrong check digit."""
         is_valid, error = ISBNValidator.validate("978-2-266-11156-1")  # Should be 0
         assert is_valid is False
-        assert "check digit" in error.lower()
+        assert "контрольная цифра" in error.lower()
 
     def test_invalid_isbn13_wrong_prefix(self):
         """Test ISBN-13 with invalid prefix."""
         is_valid, error = ISBNValidator.validate("977-2-266-11156-0")
         assert is_valid is False
-        assert "978 or 979" in error
+        assert "978" in error or "979" in error
 
     def test_invalid_isbn13_too_short(self):
         """Test ISBN-13 that is too short."""
         is_valid, error = ISBNValidator.validate("978-2-266-1115-0")
         assert is_valid is False
-        assert "13 digits" in error.lower()
+        assert "цифр" in error.lower()
 
     def test_invalid_isbn13_too_long(self):
         """Test ISBN-13 that is too long."""
         is_valid, error = ISBNValidator.validate("978-2-266-111567-0")
         assert is_valid is False
-        assert "13 digits" in error.lower()
+        assert "цифр" in error.lower()
 
     def test_invalid_isbn13_non_digit_characters(self):
         """Test ISBN-13 with non-digit characters."""
         is_valid, error = ISBNValidator.validate("978-2-26A-11156-0")
         assert is_valid is False
-        assert "only digits" in error.lower()
+        assert "цифры" in error.lower()
 
 
 class TestISBNGeneral:
@@ -138,13 +138,13 @@ class TestISBNGeneral:
         """Test empty ISBN."""
         is_valid, error = ISBNValidator.validate("")
         assert is_valid is False
-        assert "required" in error.lower()
+        assert "обязателен" in error.lower()
 
     def test_none_isbn(self):
         """Test None ISBN."""
         is_valid, error = ISBNValidator.validate(None)
         assert is_valid is False
-        assert "required" in error.lower()
+        assert "обязателен" in error.lower()
 
     def test_isbn_with_spaces(self):
         """Test ISBN with spaces instead of hyphens."""
@@ -164,7 +164,7 @@ class TestISBNGeneral:
         """Test completely invalid ISBN."""
         is_valid, error = ISBNValidator.validate("invalid-isbn")
         assert is_valid is False
-        assert "digits" in error.lower()
+        assert "цифр" in error.lower()
 
     def test_isbn10_lowercase_x(self):
         """Test ISBN-10 with lowercase x."""

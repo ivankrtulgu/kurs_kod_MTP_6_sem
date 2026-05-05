@@ -157,7 +157,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Author is required" in str(exc_info.value)
+        assert "Автор обязателен" in str(exc_info.value)
 
     def test_add_book_validation_error_empty_title(self, book_service, sample_book):
         """Test validation error for empty title."""
@@ -166,7 +166,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Title is required" in str(exc_info.value)
+        assert "Название обязательно" in str(exc_info.value)
 
     def test_add_book_validation_error_invalid_year(self, book_service, sample_book):
         """Test validation error for invalid year."""
@@ -175,7 +175,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Year must be between 1900 and 2100" in str(exc_info.value)
+        assert "Год должен быть в диапазоне 1900-2100" in str(exc_info.value)
 
     def test_add_book_validation_error_invalid_pages(self, book_service, sample_book):
         """Test validation error for invalid pages."""
@@ -184,7 +184,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Pages must be greater than 0" in str(exc_info.value)
+        assert "Количество страниц должно быть больше 0" in str(exc_info.value)
 
     def test_add_book_validation_error_invalid_isbn(self, book_service, sample_book):
         """Test validation error for invalid ISBN."""
@@ -193,7 +193,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Invalid ISBN" in str(exc_info.value)
+        assert "Недопустимый ISBN" in str(exc_info.value)
 
     def test_add_book_validation_error_empty_isbn(self, book_service, sample_book):
         """Test validation error for empty ISBN."""
@@ -202,7 +202,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "ISBN is required" in str(exc_info.value)
+        assert "ISBN обязателен" in str(exc_info.value)
 
     def test_add_book_validation_error_empty_place(self, book_service, sample_book):
         """Test validation error for empty place."""
@@ -211,7 +211,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Place of publication is required" in str(exc_info.value)
+        assert "Место издания обязательно" in str(exc_info.value)
 
     def test_add_book_validation_error_empty_publisher(self, book_service, sample_book):
         """Test validation error for empty publisher."""
@@ -220,7 +220,7 @@ class TestAddBook:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Publisher is required" in str(exc_info.value)
+        assert "Издательство обязательно" in str(exc_info.value)
 
     def test_add_book_multiple_validation_errors(self, book_service, sample_book):
         """Test multiple validation errors at once."""
@@ -232,9 +232,9 @@ class TestAddBook:
             book_service.add_book(sample_book)
         
         error_msg = str(exc_info.value)
-        assert "Author is required" in error_msg
-        assert "Title is required" in error_msg
-        assert "Invalid ISBN" in error_msg
+        assert "Автор обязателен" in error_msg
+        assert "Название обязательно" in error_msg
+        assert "Недопустимый ISBN" in error_msg
 
 
 # ===== TESTS: UPDATE BOOK =====
@@ -398,7 +398,7 @@ class TestISBNValidatorInService:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Invalid ISBN" in str(exc_info.value)
+        assert "Недопустимый ISBN" in str(exc_info.value)
 
     def test_service_rejects_invalid_isbn13(self, book_service, sample_book):
         """Test that service rejects invalid ISBN-13."""
@@ -407,7 +407,7 @@ class TestISBNValidatorInService:
         with pytest.raises(ValidationError) as exc_info:
             book_service.add_book(sample_book)
         
-        assert "Invalid ISBN" in str(exc_info.value)
+        assert "Недопустимый ISBN" in str(exc_info.value)
 
     def test_service_accepts_valid_isbn10(self, book_service, sample_book):
         """Test that service accepts valid ISBN-10."""

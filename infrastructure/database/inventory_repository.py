@@ -356,7 +356,7 @@ class PostgresInventoryRepository:
 
     def get_all_active_loans(self) -> List[LoanRecord]:
         """Fetch all currently active loans from the database."""
-        query = "SELECT * FROM loan_records WHERE return_date IS NULL OR return_date = ''"
+        query = "SELECT * FROM loan_records WHERE return_date IS NULL"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query)
