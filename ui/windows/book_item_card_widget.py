@@ -7,10 +7,11 @@ Mirrors the design of the BookCardWidget.
 
 from PyQt5.QtWidgets import (
     QWidget, QMessageBox, QFileDialog, QVBoxLayout, QHBoxLayout, 
-    QLabel, QPushButton, QFrame, QGridLayout, QInputDialog, QLineEdit, QGroupBox
+    QLabel, QPushButton, QFrame, QGridLayout, QInputDialog, QLineEdit, QGroupBox,
+    QDialog, QRadioButton, QSpinBox, QFormLayout, QScrollArea
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QPixmap, QImage, QColor, QPalette
 from pathlib import Path
 import json
 import secrets
@@ -18,10 +19,160 @@ import string
 
 from core.services.inventory_service import InventoryService
 from core.services.book_service import BookService
+from core.services.printing_service import PrintingService
+from core.services.qr_service import QRService
 from core.models.inventory import BookItem, ItemStatus
 from ui.style_manager import StyleManager
 
+class PrintSettingsWidget(QWidget):
+    """Widget for configuring QR print settings with a live preview."""
+    def __init__(self, parent_widget, inventory_service, book_service, parent=None):
+        super().__init__(parent)
+        self.parent_widget = parent_widget
+        self._inventory_service = inventory_service
+        self._book_service = book_service
+        
+        self.setWindowTitle("Настройки печати QR")
+        self.setMinimumSize(700, 400)
+        
+        main_layout = QHBoxLayout(self)
+        
+        # --- Left Side: Settings ---
+        settings_container = QWidget()
+        settings_layout = QVBoxLayout(settings_container)
+        
+        # Mode Selection
+        mode_group = QGroupBox("Режим печати")
+        mode_layout = QVBoxLayout(mode_group)
+        self.rb_item_only = QRadioButton("Только экземпляр")
+        self.rb_item_only.setChecked(True)
+        self.rb_item_only.toggled.connect(self.update_preview)
+        self.rb_both = QRadioButton("Экземпляр + Произведение")
+        self.rb_both.toggled.connect(self.update_preview)
+        mode_layout.addWidget(self.rb_item_only)
+        mode_layout.addWidget(self.rb_both)
+        settings_layout.addWidget(mode_group)
+        
+        # Column Selection
+        col_group = QGroupBox("Сетка")
+        col_layout = QFormLayout(col_group)
+        self.spin_cols = QSpinBox()
+        self.spin_cols.setRange(1, 10)
+        self.spin_cols.setValue(3)
+        self.spin_cols.valueChanged.connect(self.update_preview)
+        col_layout.addRow("Кол-во столбцов:", self.spin_cols)
+        settings_layout.addWidget(col_group)
+        
+        settings_layout.addStretch()
+        
+        # Buttons
+        btn_layout = QHBoxLayout()
+        self.btn_print = QPushButton("Печатать")
+        self.btn_print.clicked.connect(self._on_print)
+        self.btn_close = QPushButton("Закрыть")
+        self.btn_close.clicked.connect(self.close)
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.btn_print)
+        btn_layout.addWidget(self.btn_close)
+        settings_layout.addLayout(btn_layout)
+        
+        main_layout.addWidget(settings_container, 1)
+        
+        # --- Right Side: Preview ---
+        preview_group = QGroupBox("Предпросмотр листа (A4)")
+        preview_main_layout = QVBoxLayout(preview_group)
+        
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setAlignment(Qt.AlignCenter)
+        
+        self.preview_page = QFrame()
+        self.preview_page.setFixedSize(400, 565) # Proportional A4 (210:297)
+        self.preview_page.setStyleSheet("background-color: white; border: 1px solid #ccc;")
+        
+        # Layout for elements on the "page"
+        self.page_layout = QGridLayout(self.preview_page)
+        self.page_layout.setContentsMargins(20, 20, 20, 20)
+        self.page_layout.setSpacing(0)
+        
+        self.scroll_area.setWidget(self.preview_page)
+        preview_main_layout.addWidget(self.scroll_area)
+        
+        main_layout.addWidget(preview_group, 2)
+        
+        self.update_preview()
+
+    def update_preview(self):
+        """Updates the mock-up preview of the PDF page."""
+        while self.page_layout.count():
+            item = self.page_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        cols = self.spin_cols.value()
+        is_pair = self.rb_both.isChecked()
+        usable_w = 360
+        cell_w = usable_w / cols
+        
+        def create_mock_cell(text):
+            cell = QFrame()
+            cell.setFixedSize(int(cell_w), 50 if not is_pair else 80)
+            cell.setStyleSheet("border: 1px solid #aaa; background-color: #f9f9f9;")
+            
+            layout = QVBoxLayout(cell)
+            layout.setContentsMargins(2, 2, 2, 2)
+            layout.setSpacing(2)
+            
+            qr_mock = QFrame()
+            qr_mock.setFixedSize(int(cell_w * 0.6), int(cell_w * 0.6))
+            qr_mock.setStyleSheet("background-color: #ddd; border: 1px solid #bbb;")
+            layout.addWidget(qr_mock, 0, Qt.AlignCenter)
+            
+            lbl = QLabel(text)
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setFixedWidth(int(cell_w))
+            lbl.setStyleSheet("font-size: 8pt; color: #666;")
+            layout.addWidget(lbl, 0, Qt.AlignCenter)
+            
+            return cell
+
+        if not is_pair:
+            for r in range(2):
+                for c in range(cols):
+                    self.page_layout.addWidget(create_mock_cell("Экземпляр"), r, c)
+        else:
+            for r in range(2):
+                for c in range(cols):
+                    pair_container = QWidget()
+                    pair_layout = QVBoxLayout(pair_container)
+                    pair_layout.setContentsMargins(0,0,0,0)
+                    pair_layout.setSpacing(0)
+                    
+                    cell_item = create_mock_cell("Экземпляр")
+                    cell_book = create_mock_cell("ISBN: ...")
+                    
+                    pair_layout.addWidget(cell_item)
+                    pair_layout.addWidget(cell_book)
+                    pair_container.setStyleSheet("border: 1px solid #aaa; background-color: #f9f9f9;")
+                    self.page_layout.addWidget(pair_container, r, c)
+
+    def _on_print(self):
+        """Triggers the printing process in the parent widget."""
+        settings = {
+            "mode": "both" if self.rb_both.isChecked() else "item_only",
+            "cols": self.spin_cols.value()
+        }
+        self.parent_widget._execute_print_qr(settings)
+        self.close()
+
+    def get_settings(self):
+        return {
+            "mode": "both" if self.rb_both.isChecked() else "item_only",
+            "cols": self.spin_cols.value()
+        }
+
 class BookItemCardWidget(QWidget):
+
     """
     Professional card for a physical book item.
     Replicates the BookCardWidget design.
@@ -153,6 +304,10 @@ class BookItemCardWidget(QWidget):
         self.btn_qr.setMinimumHeight(40)
         self.btn_qr.clicked.connect(self._on_qr)
         
+        self.btn_print_qr = QPushButton("Печать QR")
+        self.btn_print_qr.setMinimumHeight(40)
+        self.btn_print_qr.clicked.connect(self._on_print_qr)
+        
         self.btn_change_status = QPushButton("Изменить статус")
         self.btn_change_status.setMinimumHeight(40)
         self.btn_change_status.clicked.connect(self._on_change_status)
@@ -165,7 +320,10 @@ class BookItemCardWidget(QWidget):
         self.btn_return.setMinimumHeight(40)
         self.btn_return.clicked.connect(self._on_return)
         
+        # ...
+        
         actions_layout.addWidget(self.btn_qr)
+        actions_layout.addWidget(self.btn_print_qr)
         actions_layout.addWidget(self.btn_change_status)
         actions_layout.addStretch()
         actions_layout.addWidget(self.btn_issue)
@@ -379,6 +537,99 @@ class BookItemCardWidget(QWidget):
                     
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка при изменении статуса: {e}")
+
+    def _on_print_qr(self):
+        """Handle QR printing process."""
+        if not self._item:
+            return
+            
+        try:
+            # Open Print Settings as MDI Window
+            print_widget = self._main_window._open_print_settings(
+                self._item_id, 
+                self._inventory_service, 
+                self._book_service, 
+                self
+            )
+            
+            # Establish dependency: close print window when card closes
+            self._main_window.add_close_dependency(self, print_widget)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при открытии настроек печати: {e}")
+
+    def _execute_print_qr(self, settings_data):
+        """The actual printing logic called from the settings widget."""
+        try:
+            mode = settings_data["mode"]
+            cols = settings_data["cols"]
+            
+            # Gather Data
+            item_qr = self._item.qr_code_path
+            if not item_qr:
+                QMessageBox.warning(self, "Ошибка", "Сначала сгенерируйте QR-код экземпляра")
+                return
+                
+            book_qr = None
+            if mode == "both":
+                book = self._book_service.get_book_by_id(self._item.book_id)
+                if book:
+                    if not book.qr_code_path:
+                        reply = QMessageBox.question(
+                            self, "QR-код произведения",
+                            "QR-код произведения не найден. Сгенерировать его сейчас?",
+                            QMessageBox.Yes | QMessageBox.No,
+                            QMessageBox.Yes
+                        )
+                        if reply == QMessageBox.Yes:
+                            generated_path = QRService.generate_book_qr(book)
+                            if generated_path:
+                                book.qr_code_path = generated_path
+                                self._book_service.update_book(book)
+                                book_qr = generated_path
+                            else:
+                                QMessageBox.critical(self, "Ошибка", "Не удалось сгенерировать QR-код произведения")
+                                return
+                    else:
+                        book_qr = book.qr_code_path
+                else:
+                    QMessageBox.warning(self, "Предупреждение", "Произведение не найдено, будет напечатан только QR экземпляра")
+            
+            # Setup Paths
+            from config.settings import settings
+            settings.ensure_dirs()
+            
+            print_dir = settings.RESOURCES_PATH / "printed_qrs"
+            print_dir.mkdir(parents=True, exist_ok=True)
+            
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"qr_print_{self._item.inventory_number}_{timestamp}.pdf"
+            output_path = str(print_dir / filename)
+            
+            # Generate PDF
+            item_label = f"Экземпляр: {self._item.inventory_number}"
+            book_label = None
+            if book_qr:
+                book = self._book_service.get_book_by_id(self._item.book_id)
+                book_label = f"ISBN: {book.isbn}" if book and book.isbn else "Произведение"
+            
+            success = PrintingService.generate_qr_pdf(
+                item_qr_path=item_qr,
+                item_label=item_label,
+                book_qr_path=book_qr,
+                book_label=book_label,
+                output_path=output_path,
+                cols=cols
+            )
+            
+            if success:
+                QMessageBox.information(self, "Успех", f"PDF-файл успешно создан:\n{output_path}")
+            else:
+                QMessageBox.critical(self, "Ошибка", "Не удалось сгенерировать PDF-файл")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при печати QR: {e}")
 
     def closeEvent(self, event):
         """Remove dependencies and let window close."""

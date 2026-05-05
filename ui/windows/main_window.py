@@ -593,9 +593,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 sub_window.close()
                 break
 
-    def closeEvent(self, event):
-        """Handle main window close - close all MDI subwindows."""
-        # Close all subwindows gracefully
-        for sub_window in self.mdi_area.subWindowList():
-            sub_window.close()
-        event.accept()
+    def _open_print_settings(self, item_id: int, inventory_service: Any, book_service: Any, parent_widget: Any):
+        """Open QR print settings as MDI child."""
+        from ui.windows.book_item_card_widget import PrintSettingsWidget
+        widget = self._open_mdi_subwindow(PrintSettingsWidget, parent_widget, inventory_service, book_service)
+        
+        # Set specific title for the print settings
+        sub_window = self._find_subwindow_for_widget(widget)
+        if sub_window:
+            sub_window.setWindowTitle(f"Настройки печати QR (Экз. #{item_id})")
+            
+        self.statusbar.showMessage("Настройки печати открыты", 3000)
+        return widget
