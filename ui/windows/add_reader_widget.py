@@ -13,6 +13,7 @@ from PyQt5.QtCore import Qt, QDate
 from core.services.inventory_service import InventoryService
 from core.models.inventory import Reader
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 class AddReaderWidget(QWidget):
     """
@@ -37,6 +38,7 @@ class AddReaderWidget(QWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         self.setWindowTitle("Добавление читателя" if reader_id is None else "Редактирование читателя")
         self._init_ui()

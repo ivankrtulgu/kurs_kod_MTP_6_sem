@@ -23,6 +23,7 @@ from core.services.printing_service import PrintingService
 from core.services.qr_service import QRService
 from core.models.inventory import BookItem, ItemStatus
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 class PrintSettingsWidget(QWidget):
     """Widget for configuring QR print settings with a live preview."""
@@ -202,6 +203,7 @@ class BookItemCardWidget(QWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         self._item: BookItem | None = None
         

@@ -82,6 +82,7 @@ class ReaderListWidget(QWidget):
             main_window = self.window()
             if hasattr(main_window, '_open_mdi_subwindow'):
                 from ui.windows.add_reader_widget import AddReaderWidget
+from ui.icon_manager import IconManager
                 self._opened_reader_widget = main_window._open_mdi_subwindow(AddReaderWidget, self._service, reader_id=reader_id)
                 main_window.add_close_dependency(self, self._opened_reader_widget)
 

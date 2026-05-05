@@ -42,6 +42,7 @@ from PyQt5.QtGui import QPixmap, QImageReader, QImage
 
 from ui.widgets.ocr_image_widget import OcrImageWidget
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 
 class OcrWindow(QWidget):
@@ -53,10 +54,14 @@ class OcrWindow(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # Store recognized data
         self._recognized_data: dict = {}
-        
+
+        # Set window icon if parent is a window
+        if parent and hasattr(parent, 'setWindowIcon'):
+            parent.setWindowIcon(IconManager.get_default_icon())
+
         #  Применяем светлую тему ко всему приложению
         self.setStyleSheet(StyleManager.get_stylesheet())
 

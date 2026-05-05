@@ -4,6 +4,7 @@
 from PyQt5.QtWidgets import QWidget
 from ui.generated.ui_about_dialog import Ui_AboutDialog
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 
 class AboutWidget(QWidget, Ui_AboutDialog):
@@ -15,6 +16,7 @@ class AboutWidget(QWidget, Ui_AboutDialog):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         # Update layout
         if hasattr(self, 'verticalLayout'):

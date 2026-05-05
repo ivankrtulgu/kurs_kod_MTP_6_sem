@@ -18,6 +18,7 @@ from core.services.qr_service import QRService
 from core.models.book import Book
 from ui.windows.add_book_dialog import AddBookDialog
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 
 class BookPrintSettingsWidget(QWidget):
@@ -196,6 +197,7 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         # Update layouts
         if hasattr(self, 'verticalLayout'):

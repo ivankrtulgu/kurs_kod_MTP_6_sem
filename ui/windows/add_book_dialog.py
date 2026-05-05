@@ -4,6 +4,7 @@
 from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog, QGroupBox, QVBoxLayout, QFormLayout
 from ui.generated.ui_add_book_dialog import Ui_AddBookDialog
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 from core.models.book import Book
 from core.services.book_service import BookService, ValidationError
@@ -23,6 +24,7 @@ class AddBookDialog(QDialog, Ui_AddBookDialog):
         super().__init__(parent)
         self.setupUi(self)
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
 
         # Standardize main layout
         if self.verticalLayout:

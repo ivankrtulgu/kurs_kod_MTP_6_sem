@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 from core.services.book_service import BookService
 from core.models.book import Book
 from ui.windows.book_card_widget import BookCardWidget
+from ui.icon_manager import IconManager
 from datetime import datetime
 
 class NumericTableWidgetItem(QTableWidgetItem):
@@ -42,6 +43,7 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         self.verticalLayout.setSpacing(10)
         self.verticalLayout.setContentsMargins(10, 10, 10, 10)
 

@@ -11,6 +11,7 @@ from core.services.inventory_service import InventoryService
 from core.services.book_service import BookService
 from core.models.inventory import ItemStatus
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 class InventoryListWidget(QWidget):
     """
@@ -37,6 +38,7 @@ class InventoryListWidget(QWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         self._init_ui()
 

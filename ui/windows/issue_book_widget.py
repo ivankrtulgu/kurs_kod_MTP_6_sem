@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from core.services.inventory_service import InventoryService
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 class IssueBookWidget(QWidget):
     """
@@ -25,6 +26,7 @@ class IssueBookWidget(QWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         self.setWindowTitle("Выдача экземпляра")
         self._init_ui()

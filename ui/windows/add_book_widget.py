@@ -8,6 +8,7 @@ from ui.style_manager import StyleManager
 from core.models.book import Book
 from core.services.book_service import BookService, ValidationError
 from ui.windows.ocr_window import OcrWindow
+from ui.icon_manager import IconManager
 
 
 class AddBookWidget(QWidget, Ui_AddBookDialog):
@@ -23,6 +24,7 @@ class AddBookWidget(QWidget, Ui_AddBookDialog):
         super().__init__(parent)
         self.setupUi(self)
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
 
         # Standardize main layout
         if self.layout():

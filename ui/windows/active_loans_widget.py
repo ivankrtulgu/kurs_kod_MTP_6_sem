@@ -10,6 +10,7 @@ from typing import Any
 from ui.models import ActiveLoansTableModel
 from core.services.inventory_service import InventoryService
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 class ActiveLoansWidget(QWidget):
     """
@@ -27,6 +28,7 @@ class ActiveLoansWidget(QWidget):
         
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
         
         self._init_ui()
 

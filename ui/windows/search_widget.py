@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 import csv
 from ui.generated.ui_search_dialog import Ui_SearchDialog
 from ui.style_manager import StyleManager
+from ui.icon_manager import IconManager
 
 from core.services.book_service import BookService
 from core.models.book import Book
@@ -31,6 +32,7 @@ class SearchWidget(QWidget, Ui_SearchDialog):
         super().__init__(parent)
         self.setupUi(self)
         self.setStyleSheet(StyleManager.get_stylesheet())
+        self.setWindowIcon(IconManager.get_default_icon())
 
         # Standardize main layout
         if self.layout():

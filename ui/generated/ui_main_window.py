@@ -91,7 +91,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Библиотека OCR — Каталог книг"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Библиотека Читалка"))
         self.menu_file.setTitle(_translate("MainWindow", "Файл"))
         self.menu_catalog.setTitle(_translate("MainWindow", "Каталог"))
         self.menu_service.setTitle(_translate("MainWindow", "Сервис"))
