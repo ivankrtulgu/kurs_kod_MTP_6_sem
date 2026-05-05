@@ -17,6 +17,7 @@ class ReturnBookWidget(QWidget):
     Widget for returning a book item.
     Designed to be hosted within a QMdiSubWindow.
     """
+    WINDOW_TITLE = "Возврат экземпляра"
 
     def __init__(self, service: InventoryService, parent=None):
         super().__init__(parent)
