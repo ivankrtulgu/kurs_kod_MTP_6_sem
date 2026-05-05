@@ -7,7 +7,7 @@ Mirrors the design of the BookCardWidget.
 
 from PyQt5.QtWidgets import (
     QWidget, QMessageBox, QFileDialog, QVBoxLayout, QHBoxLayout, 
-    QLabel, QPushButton, QFrame, QGridLayout, QInputDialog, QLineEdit, QGroupBox,
+    QLabel, QPushButton, QFrame, QGridLayout, QInputDialog, QLineEdit, QGroupBox, QMdiSubWindow,
     QDialog, QRadioButton, QSpinBox, QFormLayout, QScrollArea
 )
 from PyQt5.QtCore import Qt, QSize
@@ -163,7 +163,14 @@ class PrintSettingsWidget(QWidget):
             "cols": self.spin_cols.value()
         }
         self.parent_widget._execute_print_qr(settings)
-        self.close()
+        
+        # Close only the MDI subwindow containing this widget
+        parent = self.parent()
+        while parent:
+            if isinstance(parent, QMdiSubWindow):
+                parent.close()
+                break
+            parent = parent.parent()
 
     def get_settings(self):
         return {

@@ -251,8 +251,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 from ui.windows.book_card_widget import BookCardWidget
                 widget = BookCardWidget(
                     book_id=book.id,
-                    book_service=self._book_service
+                    book_service=self._book_service,
+                    inventory_service=self._inventory_service
                 )
+                widget._main_window = self
                 title = widget.get_book_title()
                 sub_window = self._create_sub_window(widget, title, 850, 650)
                 self.mdi_area.addSubWindow(sub_window)
@@ -431,8 +433,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # For now, we'll just open it as a new window.
             widget = BookCardWidget(
                 book_id=book_id,
-                book_service=self._book_service
+                book_service=self._book_service,
+                inventory_service=self._inventory_service
             )
+            widget._main_window = self
             title = widget.get_book_title()
             
             sub_window = self._create_sub_window(widget, title, 850, 650)
@@ -604,4 +608,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             sub_window.setWindowTitle(f"Настройки печати QR (Экз. #{item_id})")
             
         self.statusbar.showMessage("Настройки печати открыты", 3000)
+        return widget
+
+    def _open_book_print_settings(self, book_id: int, book_service: Any, inventory_service: Any, parent_widget: Any):
+        """Open Book QR print settings as MDI child."""
+        from ui.windows.book_card_widget import BookPrintSettingsWidget
+        widget = self._open_mdi_subwindow(BookPrintSettingsWidget, parent_widget, book_service, inventory_service)
+        
+        # Set specific title for the print settings
+        sub_window = self._find_subwindow_for_widget(widget)
+        if sub_window:
+            sub_window.setWindowTitle(f"Настройки печати QR (Книга #{book_id})")
+            
+        self.statusbar.showMessage("Настройки печати книги открыты", 3000)
         return widget
