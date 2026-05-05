@@ -145,26 +145,18 @@ class ReaderTableModel(QAbstractTableModel):
 class ActiveLoansTableModel(QAbstractTableModel):
     """
     PyQt5 Table Model for displaying book loans with filtering.
-    
-    Columns:
-        0: Inventory Number
-        1: Book Title
-        2: Reader Name
-        3: Issue Date
-        4: Due Date
-        5: Actual Return Date
+    Caches resolved data to prevent N+1 query freezes.
     """
 
     def __init__(self, inventory_service: InventoryService, book_service: Any, parent=None):
         super().__init__(parent)
         self._inventory_service = inventory_service
         self._book_service = book_service
-        self._all_loans: List[LoanRecord] = []
-        self._filtered_loans: List[LoanRecord] = []
+        self._cached_data = [] 
         self._headers = ["Инв. №", "Произведение", "Читатель", "Дата выдачи", "Срок возврата", "Факт. возврат"]
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self._filtered_loans)
+        return len(self._cached_data)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self._headers)
@@ -173,29 +165,21 @@ class ActiveLoansTableModel(QAbstractTableModel):
         if not index.isValid() or role != Qt.DisplayRole:
             return None
 
-        loan = self._filtered_loans[index.row()]
+        row_data = self._cached_data[index.row()]
         col = index.column()
 
-        # Resolve related entities
-        item = self._inventory_service._repo.get_item_by_id(loan.item_id)
-        reader = self._inventory_service._repo.get_reader_by_id(loan.reader_id)
-        book = self._book_service.get_book_by_id(item.book_id) if item else None
-        
         if col == 0:
-            return item.inventory_number if item else "???"
+            return row_data["inv"]
         elif col == 1:
-            return f"{book.author}. {book.title}" if book else "Неизвестно"
+            return row_data["book"]
         elif col == 2:
-            if reader:
-                return f"{reader.last_name} {reader.first_name} {reader.middle_name}".strip()
-            return "Неизвестно"
+            return row_data["reader"]
         elif col == 3:
-            return loan.issue_date.strftime("%d.%m.%Y")
-
+            return row_data["issue"]
         elif col == 4:
-            return loan.due_date.strftime("%d.%m.%Y")
+            return row_data["due"]
         elif col == 5:
-            return loan.return_date.strftime("%d.%m.%Y") if loan.return_date else "—"
+            return row_data["return"]
 
         return None
 
@@ -206,21 +190,49 @@ class ActiveLoansTableModel(QAbstractTableModel):
 
     def refresh_data(self, filter_type: str = "All"):
         """
-        Fetch loan data and apply filters.
-        filter_type: 'All', 'Active', 'Closed', 'Overdue'
+        Fetch loan data, resolve entities, and cache results.
         """
         self.beginResetModel()
-        self._all_loans = self._inventory_service.get_all_loans()
+        self._cached_data = []
         
+        all_loans = self._inventory_service.get_all_loans()
         now = datetime.now()
+        
         if filter_type == "Active":
-            self._filtered_loans = [l for l in self._all_loans if not l.return_date]
+            loans = [loan for loan in all_loans if not loan.return_date]
         elif filter_type == "Closed":
-            self._filtered_loans = [l for l in self._all_loans if l.return_date]
+            loans = [loan for loan in all_loans if loan.return_date]
         elif filter_type == "Overdue":
-            self._filtered_loans = [l for l in self._all_loans if not l.return_date and l.due_date < now]
-        else: # All
-            self._filtered_loans = self._all_loans
+            loans = [loan for loan in all_loans if not loan.return_date and loan.due_date < now]
+        else: 
+            loans = all_loans
+
+        # Pre-compute display data
+        for loan in loans:
+            item = self._inventory_service._repo.get_item_by_id(loan.item_id)
+            reader = self._inventory_service._repo.get_reader_by_id(loan.reader_id)
+            
+            book_title = "Неизвестно"
+            inv_num = "???"
+            reader_name = "Неизвестно"
+            
+            if item:
+                inv_num = item.inventory_number
+                book = self._book_service.get_book_by_id(item.book_id)
+                if book:
+                    book_title = f"{book.author}. {book.title}"
+            
+            if reader:
+                reader_name = f"{reader.last_name} {reader.first_name} {reader.middle_name}".strip()
+                
+            self._cached_data.append({
+                "inv": inv_num,
+                "book": book_title,
+                "reader": reader_name,
+                "issue": loan.issue_date.strftime("%d.%m.%Y"),
+                "due": loan.due_date.strftime("%d.%m.%Y"),
+                "return": loan.return_date.strftime("%d.%m.%Y") if loan.return_date else "—"
+            })
             
         self.endResetModel()
 
