@@ -36,7 +36,7 @@ from PyQt5.QtWidgets import (
     QGroupBox, QTableWidget, QTableWidgetItem, QApplication,
     QSlider, QScrollArea, QComboBox, QAbstractItemView
 )
-from PyQt5.QtCore import QRect, Qt, pyqtSignal
+from PyQt5.QtCore import QRect, Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QPixmap, QImageReader, QImage
 
 
@@ -57,6 +57,12 @@ class OcrWindow(QWidget):
 
         # Store recognized data
         self._recognized_data: dict = {}
+
+        # Debounce timer for brightness/contrast adjustments
+        self._adjustment_timer = QTimer()
+        self._adjustment_timer.setSingleShot(True)
+        self._adjustment_timer.setInterval(50)  # 150ms delay
+        self._adjustment_timer.timeout.connect(self._apply_image_settings_delayed)
 
         # Set window icon if parent is a window
         if parent and hasattr(parent, 'setWindowIcon'):
@@ -387,26 +393,29 @@ class OcrWindow(QWidget):
     def _on_brightness_changed(self, value):
         """Изменение яркости."""
         self.label_brightness_value.setText(str(value))
-        self._apply_image_settings(silent=True)
-    
+        # Restart timer on each slider change
+        self._adjustment_timer.stop()
+        self._adjustment_timer.start()
+
     def _on_contrast_changed(self, value):
         """Изменение контраста."""
         self.label_contrast_value.setText(str(value))
-        self._apply_image_settings(silent=True)
+        # Restart timer on each slider change
+        self._adjustment_timer.stop()
+        self._adjustment_timer.start()
+
+    def _apply_image_settings_delayed(self):
+        """Apply image settings after debounce delay."""
+        brightness = self.slider_brightness.value()
+        contrast = self.slider_contrast.value()
+        self.image_widget.apply_image_adjustments(brightness, contrast)
     
     def _reset_image_settings(self):
         """Сбросить настройки изображения."""
         self.slider_brightness.setValue(0)
         self.slider_contrast.setValue(0)
         self.image_widget.reset_image_settings()
-    
-    def _apply_image_settings(self, silent: bool = False):
-        """Применить настройки яркости и контраста."""
-        brightness = self.slider_brightness.value()
-        contrast = self.slider_contrast.value()
-        
-        self.image_widget.apply_image_adjustments(brightness, contrast)
-    
+
     def _on_region_selected(self, region_id: int, rect: QRect):
         """Область выделена."""
         self.label_progress.setText(f"Области: {region_id + 1}/10")

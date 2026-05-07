@@ -500,25 +500,30 @@ class OcrImageWidget(QWidget):
             from PIL import Image
             import io
             import os
+            from config.settings import settings
 
-            # Auto-detect Tesseract installation
-            import shutil
-            tesseract_path = shutil.which("tesseract")
+            # Try to get Tesseract path from settings (from .env)
+            tesseract_path = settings.TESSERACT_PATH.strip() if hasattr(settings, 'TESSERACT_PATH') else ""
 
+            # If not set in .env, auto-detect
             if not tesseract_path:
-                # Try common installation paths
-                common_paths = [
-                    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-                    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-                    r"D:\Main_programms\Tesseract\Tesseract-OCR\tesseract.exe",
-                    r"/usr/bin/tesseract",
-                    r"/usr/local/bin/tesseract",
-                ]
+                import shutil
+                tesseract_path = shutil.which("tesseract")
 
-                for path in common_paths:
-                    if os.path.exists(path):
-                        tesseract_path = path
-                        break
+                if not tesseract_path:
+                    # Try common installation paths
+                    common_paths = [
+                        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                        r"D:\Main_programms\Tesseract\Tesseract-OCR\tesseract.exe",
+                        r"/usr/bin/tesseract",
+                        r"/usr/local/bin/tesseract",
+                    ]
+
+                    for path in common_paths:
+                        if os.path.exists(path):
+                            tesseract_path = path
+                            break
 
             if tesseract_path:
                 pytesseract.pytesseract.tesseract_cmd = tesseract_path
