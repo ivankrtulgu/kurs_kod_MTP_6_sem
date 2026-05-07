@@ -139,6 +139,33 @@ class PostgresBookRepository(BookRepository):
             rows = cursor.fetchall()
             return [self._row_to_book(row) for row in rows]
 
+    def get_paginated(self, limit: int = 100, offset: int = 0) -> list[Book]:
+        """
+        Get books with pagination.
+        Optimized for large catalogs - loads only requested page.
+
+        Args:
+            limit: Number of books per page (default 100).
+            offset: Number of books to skip (default 0).
+
+        Returns:
+            List of books for the requested page.
+        """
+        query = "SELECT * FROM books ORDER BY year DESC, title ASC LIMIT %s OFFSET %s"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (limit, offset))
+            rows = cursor.fetchall()
+            return [self._row_to_book(row) for row in rows]
+
+    def count_all(self) -> int:
+        """Get total count of books in catalog."""
+        query = "SELECT COUNT(*) as count FROM books"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            return cursor.fetchone()["count"]
+
     def search(self, query: str) -> list[Book]:
         """Search books by author, title, or ISBN."""
         search_pattern = f"%{query}%"
@@ -150,6 +177,61 @@ class PostgresBookRepository(BookRepository):
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(sql, (search_pattern, search_pattern, search_pattern))
+            rows = cursor.fetchall()
+            return [self._row_to_book(row) for row in rows]
+
+    def advanced_search(self, filters: dict) -> list[Book]:
+        """
+        Advanced search with multiple filters.
+        Optimized: filtering done at database level with WHERE clauses.
+
+        Args:
+            filters: Dict with field names as keys and filter data as values.
+                    Text filters: {"field": {"val": "search_text", "type": "text"}}
+                    Range filters: {"field": {"from": "min", "to": "max", "type": "range"}}
+
+        Returns:
+            List of books matching ALL filters (AND logic).
+        """
+        if not filters:
+            return self.get_all()
+
+        where_clauses = []
+        params = []
+
+        for field, filter_data in filters.items():
+            if filter_data["type"] == "text":
+                # Text search with LIKE (case-insensitive)
+                where_clauses.append(f"LOWER({field}::text) LIKE LOWER(%s)")
+                params.append(f"%{filter_data['val']}%")
+
+            elif filter_data["type"] == "range":
+                # Range search with BETWEEN or >= / <=
+                f_from = filter_data.get("from")
+                f_to = filter_data.get("to")
+
+                if f_from and f_to:
+                    where_clauses.append(f"{field} BETWEEN %s AND %s")
+                    params.extend([int(f_from), int(f_to)])
+                elif f_from:
+                    where_clauses.append(f"{field} >= %s")
+                    params.append(int(f_from))
+                elif f_to:
+                    where_clauses.append(f"{field} <= %s")
+                    params.append(int(f_to))
+
+        if not where_clauses:
+            return self.get_all()
+
+        sql = f"""
+            SELECT * FROM books
+            WHERE {' AND '.join(where_clauses)}
+            ORDER BY year DESC, title ASC
+        """
+
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
             rows = cursor.fetchall()
             return [self._row_to_book(row) for row in rows]
 

@@ -412,6 +412,30 @@ class BookService:
         logger.debug("Getting all books")
         return self._repository.get_all()
 
+    def get_books_paginated(self, limit: int = 100, offset: int = 0) -> list[Book]:
+        """
+        Get books with pagination.
+        Optimized for large catalogs.
+
+        Args:
+            limit: Number of books per page (default 100).
+            offset: Number of books to skip (default 0).
+
+        Returns:
+            list[Book]: List of books for the requested page.
+        """
+        logger.debug(f"Getting books page: limit={limit}, offset={offset}")
+        return self._repository.get_paginated(limit, offset)
+
+    def count_all_books(self) -> int:
+        """
+        Get total count of books in catalog.
+
+        Returns:
+            int: Total number of books.
+        """
+        return self._repository.count_all()
+
     def search_books(self, query: str) -> list[Book]:
         """
         Search books by author, title, or ISBN.
@@ -423,6 +447,23 @@ class BookService:
             list[Book]: List of matching books.
         """
         logger.debug(f"Searching books with query: {query}")
+        return self._repository.search(query)
+
+    def advanced_search_books(self, filters: dict) -> list[Book]:
+        """
+        Advanced search with multiple filters.
+        Optimized: filtering done at database level.
+
+        Args:
+            filters: Dict with field names as keys and filter data as values.
+                    Text filters: {"field": {"val": "search_text", "type": "text"}}
+                    Range filters: {"field": {"from": "min", "to": "max", "type": "range"}}
+
+        Returns:
+            list[Book]: List of books matching ALL filters (AND logic).
+        """
+        logger.debug(f"Advanced search with {len(filters)} filters")
+        return self._repository.advanced_search(filters)
         return self._repository.search(query)
 
     def count_books(self) -> int:

@@ -499,9 +499,31 @@ class OcrImageWidget(QWidget):
             import pytesseract
             from PIL import Image
             import io
+            import os
 
-            #  Указываем путь к Tesseract
-            pytesseract.pytesseract.tesseract_cmd = r'd:\Main_programms\Tesseract\Tesseract-OCR\tesseract.exe'
+            # Auto-detect Tesseract installation
+            import shutil
+            tesseract_path = shutil.which("tesseract")
+
+            if not tesseract_path:
+                # Try common installation paths
+                common_paths = [
+                    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                    r"D:\Main_programms\Tesseract\Tesseract-OCR\tesseract.exe",
+                    r"/usr/bin/tesseract",
+                    r"/usr/local/bin/tesseract",
+                ]
+
+                for path in common_paths:
+                    if os.path.exists(path):
+                        tesseract_path = path
+                        break
+
+            if tesseract_path:
+                pytesseract.pytesseract.tesseract_cmd = tesseract_path
+            else:
+                return "(Ошибка: Tesseract не установлен. Установите Tesseract-OCR с https://github.com/UB-Mannheim/tesseract/wiki)"
 
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)

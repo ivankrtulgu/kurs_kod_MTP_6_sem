@@ -275,7 +275,7 @@ class BookItemCardWidget(QWidget):
         self.edit_location.setPlaceholderText("Введите местоположение...")
         
         self.btn_save_loc = QPushButton("Сохранить")
-        self.btn_save_loc.setFixedWidth(80)
+        self.btn_save_loc.setMinimumWidth(100)
         self.btn_save_loc.clicked.connect(self._on_save_location)
         
         loc_layout.addWidget(self.edit_location)

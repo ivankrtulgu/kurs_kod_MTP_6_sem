@@ -155,12 +155,21 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         self.table_books.sortByColumn(0, Qt.AscendingOrder)
 
     def _load_books(self):
-        """Load all books from repository."""
+        """Load all books from repository. Optimized with pagination for large catalogs."""
         try:
-            self._all_books = self._book_service.get_all_books()
+            # Get total count for status display
+            total_count = self._book_service.count_all_books()
+
+            # Load first page (limit 1000 books for initial display)
+            # For very large catalogs, consider adding pagination controls
+            self._all_books = self._book_service.get_books_paginated(limit=1000, offset=0)
             self._filtered_books = self._all_books.copy()
             self._display_books(self._filtered_books)
-            self.label_status.setText(f"Всего: {len(self._all_books)} книг")
+
+            if total_count > 1000:
+                self.label_status.setText(f"Показано: {len(self._all_books)} из {total_count} книг (первая страница)")
+            else:
+                self.label_status.setText(f"Всего: {total_count} книг")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить книги: {e}")
             self.label_status.setText("Ошибка загрузки")
@@ -208,42 +217,16 @@ class BookListWidget(QWidget, Ui_BookListWidget):
                     val = input_widget.text().strip().lower()
                     if val:
                         active_filters[field] = {"val": val, "type": "text"}
-            
-            if not active_filters:
-                self._filtered_books = self._all_books.copy()
-            else:
-                self._filtered_books = []
-                for book in self._all_books:
-                    match = True
-                    for field, filter_data in active_filters.items():
-                        val = getattr(book, field)
-                        
-                        if filter_data["type"] == "text":
-                            if filter_data["val"] not in str(val).lower():
-                                match = False
-                                break
-                        elif filter_data["type"] == "range":
-                            try:
-                                book_val = int(val)
-                                f_from = filter_data["from"]
-                                f_to = filter_data["to"]
-                                
-                                if f_from and not (int(f_from) <= book_val):
-                                    match = False
-                                    break
-                                if f_to and not (book_val <= int(f_to)):
-                                    match = False
-                                    break
-                            except (ValueError, TypeError):
-                                # If book value is not an int or input is not an int, it's not a match
-                                match = False
-                                break
-                    if match:
-                        self._filtered_books.append(book)
-            
+
+            # OPTIMIZED: Use database-level filtering instead of client-side
+            self._filtered_books = self._book_service.advanced_search_books(active_filters)
+
+            # Get total count for comparison
+            total_count = self._book_service.count_all_books()
+
             self._display_books(self._filtered_books)
-            self.label_status.setText(f"Найдено: {len(self._filtered_books)} из {len(self._all_books)}")
-            
+            self.label_status.setText(f"Найдено: {len(self._filtered_books)} из {total_count}")
+
         except Exception as e:
             QMessageBox.critical(self, "Ошибка поиска", f"Ошибка: {e}")
 

@@ -103,8 +103,50 @@ class PostgresInventoryRepository:
                     inventory_number=row["inventory_number"],
                     book_id=row["book_id"],
                     status=ItemStatus(row["status"]),
-                    location=row["location"] or ""
+                    location=row["location"] or "",
+                    qr_code_path=row.get("qr_code_path")
                 ) for row in rows
+            ]
+
+    def get_all_items_with_books(self) -> List[dict]:
+        """
+        Fetch all items with their book information in a single JOIN query.
+        Returns list of dicts with item and book data.
+        Optimized for inventory list display - avoids N+1 query problem.
+        """
+        query = """
+            SELECT
+                bi.id as item_id,
+                bi.inventory_number,
+                bi.book_id,
+                bi.status,
+                bi.location,
+                bi.qr_code_path,
+                b.author,
+                b.title,
+                b.isbn
+            FROM book_items bi
+            LEFT JOIN books b ON bi.book_id = b.id
+            ORDER BY b.author, b.title, bi.inventory_number
+        """
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return [
+                {
+                    'item': BookItem(
+                        id=row["item_id"],
+                        inventory_number=row["inventory_number"],
+                        book_id=row["book_id"],
+                        status=ItemStatus(row["status"]),
+                        location=row["location"] or "",
+                        qr_code_path=row.get("qr_code_path")
+                    ),
+                    'book_author': row.get("author") or "Неизвестный автор",
+                    'book_title': row.get("title") or "Неизвестное произведение",
+                    'book_isbn': row.get("isbn") or "N/A"
+                } for row in rows
             ]
 
     def update_item_qr_path(self, item_id: int, qr_path: str) -> bool:
@@ -214,7 +256,7 @@ class PostgresInventoryRepository:
 
     def get_all_readers(self) -> List[Reader]:
         """Fetch all readers."""
-        query = "SELECT * FROM readers"
+        query = "SELECT * FROM readers ORDER BY last_name, first_name"
         with self._db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query)
@@ -236,6 +278,49 @@ class PostgresInventoryRepository:
                     passport_number=row["passport_number"] or ""
                 ) for row in rows
             ]
+
+    def get_readers_paginated(self, limit: int = 100, offset: int = 0) -> List[Reader]:
+        """
+        Get readers with pagination.
+        Optimized for large reader databases.
+
+        Args:
+            limit: Number of readers per page (default 100).
+            offset: Number of readers to skip (default 0).
+
+        Returns:
+            List of readers for the requested page.
+        """
+        query = "SELECT * FROM readers ORDER BY last_name, first_name LIMIT %s OFFSET %s"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (limit, offset))
+            rows = cursor.fetchall()
+            return [
+                Reader(
+                    id=row["id"],
+                    last_name=row["last_name"],
+                    first_name=row["first_name"],
+                    middle_name=row["middle_name"] or "",
+                    birth_date=row["birth_date"] or "",
+                    phone=row["phone"] or "",
+                    email=row["email"] or "",
+                    home_address=row["home_address"] or "",
+                    registration_date=row["registration_date"] or "",
+                    status=row["status"] or "active",
+                    notes=row["notes"] or "",
+                    passport_series=row["passport_series"] or "",
+                    passport_number=row["passport_number"] or ""
+                ) for row in rows
+            ]
+
+    def count_all_readers(self) -> int:
+        """Get total count of readers."""
+        query = "SELECT COUNT(*) as count FROM readers"
+        with self._db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            return cursor.fetchone()["count"]
 
     def get_reader_by_id(self, reader_id: int) -> Optional[Reader]:
         query = "SELECT * FROM readers WHERE id = %s"

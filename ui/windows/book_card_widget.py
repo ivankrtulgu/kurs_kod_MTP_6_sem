@@ -468,7 +468,10 @@ class BookCardWidget(QWidget, Ui_BookCardWidget):
             # Update book record with QR path
             self._book.qr_code_path = str(qr_path)
             self._book_service.update_book(self._book)
-            
+
+            # Update UI to show the generated QR code
+            self._load_image_to_label(self._book.qr_code_path, self.label_qr, "QR-код не найден", "QR-код не сгенерирован")
+
         except ImportError:
             QMessageBox.warning(
                 self, "QR-код",

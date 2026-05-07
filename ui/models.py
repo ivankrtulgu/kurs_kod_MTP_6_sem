@@ -137,9 +137,11 @@ class ReaderTableModel(QAbstractTableModel):
         return None
 
     def refresh_data(self):
-        """Fetch fresh reader data."""
+        """Fetch fresh reader data. Optimized with pagination for large databases."""
         self.beginResetModel()
-        self._readers = self._service.get_all_readers()
+        # Load first 1000 readers (sufficient for most libraries)
+        # For very large databases, consider adding pagination controls
+        self._readers = self._service._repo.get_readers_paginated(limit=1000, offset=0)
         self.endResetModel()
 
 class ActiveLoansTableModel(QAbstractTableModel):

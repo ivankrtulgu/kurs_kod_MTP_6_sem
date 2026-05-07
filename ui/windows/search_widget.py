@@ -220,40 +220,10 @@ class SearchWidget(QWidget, Ui_SearchDialog):
                     val = input_widget.text().strip().lower()
                     if val:
                         active_filters[field] = {"val": val, "type": "text"}
-            
-            # Fetch all books and filter on client side for flexibility
-            all_books = self._book_service.get_all_books()
-            
-            if not active_filters:
-                self._search_results = all_books
-            else:
-                self._search_results = []
-                for book in all_books:
-                    match = True
-                    for field, filter_data in active_filters.items():
-                        val = getattr(book, field)
-                        
-                        if filter_data["type"] == "text":
-                            if filter_data["val"] not in str(val).lower():
-                                match = False
-                                break
-                        elif filter_data["type"] == "range":
-                            try:
-                                book_val = int(val)
-                                f_from = filter_data["from"]
-                                f_to = filter_data["to"]
-                                if f_from and not (int(f_from) <= book_val):
-                                    match = False
-                                    break
-                                if f_to and not (book_val <= int(f_to)):
-                                    match = False
-                                    break
-                            except (ValueError, TypeError):
-                                match = False
-                                break
-                    if match:
-                        self._search_results.append(book)
-            
+
+            # Use optimized advanced search (filtering at DB level)
+            self._search_results = self._book_service.advanced_search_books(active_filters)
+
             self._display_results(self._search_results)
             
             # Update the search info (the group box is hidden, but we can update status if we had one)
