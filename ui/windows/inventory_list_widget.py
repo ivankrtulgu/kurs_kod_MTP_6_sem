@@ -127,10 +127,11 @@ class InventoryListWidget(QWidget):
         """Handle double click on a tree item."""
         # If it's a child item (a physical copy), open its card
         if item.parent():
-            # We need to find the item_id. 
+            # We need to find the item_id.
             # Since we didn't store it in the node, we'll find it by inventory number.
-            inv_num = item.text(0).replace("Инв. № ", "").strip()
-            
+            # Column 1 now contains "Инв. № XXX" after reordering
+            inv_num = item.text(1).replace("Инв. № ", "").strip()
+
             # Notify MainWindow to open the card
             # We assume the parent window is MainWindow
             main_window = self.window()

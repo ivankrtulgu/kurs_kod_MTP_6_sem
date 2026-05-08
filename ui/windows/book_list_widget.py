@@ -155,21 +155,15 @@ class BookListWidget(QWidget, Ui_BookListWidget):
         self.table_books.sortByColumn(0, Qt.AscendingOrder)
 
     def _load_books(self):
-        """Load all books from repository. Optimized with pagination for large catalogs."""
+        """Load all books from repository."""
         try:
-            # Get total count for status display
-            total_count = self._book_service.count_all_books()
-
-            # Load first page (limit 1000 books for initial display)
-            # For very large catalogs, consider adding pagination controls
-            self._all_books = self._book_service.get_books_paginated(limit=1000, offset=0)
+            # Load all books
+            self._all_books = self._book_service.get_all_books()
             self._filtered_books = self._all_books.copy()
             self._display_books(self._filtered_books)
 
-            if total_count > 1000:
-                self.label_status.setText(f"Показано: {len(self._all_books)} из {total_count} книг (первая страница)")
-            else:
-                self.label_status.setText(f"Всего: {total_count} книг")
+            total_count = len(self._all_books)
+            self.label_status.setText(f"Всего: {total_count} книг")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить книги: {e}")
             self.label_status.setText("Ошибка загрузки")
