@@ -1,0 +1,112 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Запуск каждый день в 2:00 UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r security/requirements-security.txt
+
+    - name: Run Bandit (SAST)
+      run: |
+        bandit -r . -f json -o security/reports/bandit_report.json --exclude ./venv,./tests,./temp --severity-level medium || true
+        bandit -r . -f txt -o security/reports/bandit_report.txt --exclude ./venv,./tests,./temp --severity-level medium || true
+
+    - name: Run Safety (Dependency Check)
+      run: |
+        safety check --json --output security/reports/safety_report.json || true
+        safety check --full-report --output security/reports/safety_report.txt || true
+
+    - name: Run pip-audit
+      run: |
+        pip-audit --format json --output security/reports/pip_audit_report.json || true
+
+    - name: Run detect-secrets
+      run: |
+        detect-secrets scan --exclude-files 'venv/.*|\.git/.*|\.pytest_cache/.*' > security/reports/secrets_baseline.json || true
+
+    - name: Run Pylint
+      run: |
+        pylint --rcfile=.pylintrc --output-format=json core/ infrastructure/ ui/ > security/reports/pylint_report.json 2>/dev/null || true
+
+    - name: Run Semgrep
+      run: |
+        pip install semgrep
+        semgrep --config=auto --json --output=security/reports/semgrep_report.json . || true
+
+    - name: Generate HTML Report
+      run: |
+        python security/generate_report.py
+
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: security/reports/
+        retention-days: 30
+
+    - name: Check for Critical Issues
+      run: |
+        CRITICAL_COUNT=$(grep -c '"severity": "HIGH"' security/reports/bandit_report.json 2>/dev/null || echo "0")
+        if [ "$CRITICAL_COUNT" -gt 0 ]; then
+          echo "::error::Found $CRITICAL_COUNT high-severity security issues!"
+          exit 1
+        fi
+
+    - name: Comment PR with Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const bandit = JSON.parse(fs.readFileSync('security/reports/bandit_report.json', 'utf8'));
+          const safety = JSON.parse(fs.readFileSync('security/reports/safety_report.json', 'utf8'));
+
+          const banditIssues = bandit.results.length;
+          const safetyIssues = safety.vulnerabilities ? safety.vulnerabilities.length : 0;
+
+          const comment = `## Security Scan Results
+
+          - **Bandit (SAST)**: ${banditIssues} issues found
+          - **Safety (Dependencies)**: ${safetyIssues} vulnerabilities found
+
+          📊 [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          `;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

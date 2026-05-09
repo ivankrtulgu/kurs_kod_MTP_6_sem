@@ -1,0 +1,16 @@
+# Security Reports
+# Отчеты безопасности не должны коммититься в Git
+
+# Все отчеты
+*.json
+*.txt
+*.html
+*.xml
+*.csv
+
+# Исключения - сохраняем baseline для detect-secrets
+!secrets_baseline.json
+
+# Временные файлы
+*.tmp
+*.bak

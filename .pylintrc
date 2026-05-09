@@ -1,0 +1,109 @@
+# Pylint Configuration for Security
+# Конфигурация Pylint с фокусом на безопасность
+
+[MASTER]
+# Игнорируемые директории
+ignore=venv,tests,temp,.pytest_cache,.git,docs
+
+# Плагины
+load-plugins=pylint.extensions.bad_builtin,
+             pylint.extensions.check_elif,
+             pylint.extensions.comparetozero,
+             pylint.extensions.emptystring,
+             pylint.extensions.overlapping_exceptions,
+             pylint.extensions.redefined_variable_type
+
+[MESSAGES CONTROL]
+# Отключенные проверки (можно настроить под проект)
+disable=C0111,  # missing-docstring
+        C0103,  # invalid-name
+        R0903,  # too-few-public-methods
+        R0913,  # too-many-arguments
+        W0212,  # protected-access (для тестов)
+
+# Включенные проверки безопасности
+enable=W0101,   # unreachable
+       W0102,   # dangerous-default-value
+       W0106,   # expression-not-assigned
+       W0107,   # unnecessary-pass
+       W0109,   # duplicate-key
+       W0123,   # eval-used
+       W0150,   # lost-exception
+       W0199,   # assert-on-tuple
+       W0221,   # arguments-differ
+       W0222,   # signature-differs
+       W0233,   # non-parent-init-called
+       W0235,   # useless-super-delegation
+       W0404,   # reimported
+       W0611,   # unused-import
+       W0612,   # unused-variable
+       W0613,   # unused-argument
+       W0622,   # redefined-builtin
+       W0702,   # bare-except
+       W0703,   # broad-except
+       W1201,   # logging-not-lazy
+       W1202,   # logging-format-interpolation
+       W1401,   # anomalous-backslash-in-string
+       W1505,   # deprecated-method
+       W1508,   # invalid-envvar-default
+       E0102,   # function-redefined
+       E0103,   # not-in-loop
+       E0104,   # return-outside-function
+       E0105,   # yield-outside-function
+       E0106,   # return-arg-in-generator
+       E0107,   # nonexistent-operator
+       E0108,   # duplicate-argument-name
+       E0202,   # method-hidden
+       E0203,   # access-member-before-definition
+       E0401,   # import-error
+       E0601,   # used-before-assignment
+       E0602,   # undefined-variable
+       E0603,   # undefined-all-variable
+       E0604,   # invalid-all-object
+       E0701,   # bad-except-order
+       E0702,   # raising-bad-type
+       E0703,   # bad-exception-context
+       E0704,   # misplaced-bare-raise
+       E1101,   # no-member
+       E1102,   # not-callable
+       E1111,   # assignment-from-no-return
+       E1120,   # no-value-for-parameter
+       E1121,   # too-many-function-args
+       E1123,   # unexpected-keyword-arg
+       E1124,   # redundant-keyword-arg
+       E1125,   # missing-kwoa
+       E1132,   # repeated-keyword
+       E1200,   # logging-unsupported-format
+       E1205,   # logging-too-many-args
+       E1206,   # logging-too-few-args
+
+[REPORTS]
+# Формат вывода
+output-format=text
+reports=yes
+score=yes
+
+[BASIC]
+# Соглашения об именовании
+good-names=i,j,k,ex,Run,_,id,db
+
+[DESIGN]
+# Ограничения сложности
+max-args=7
+max-attributes=10
+max-bool-expr=5
+max-branches=15
+max-locals=20
+max-parents=7
+max-public-methods=25
+max-returns=6
+max-statements=60
+min-public-methods=1
+
+[IMPORTS]
+# Проверка импортов
+allow-wildcard-with-all=no
+
+[EXCEPTIONS]
+# Исключения
+overgeneral-exceptions=builtins.Exception
