@@ -464,7 +464,6 @@ class BookService:
         """
         logger.debug(f"Advanced search with {len(filters)} filters")
         return self._repository.advanced_search(filters)
-        return self._repository.search(query)
 
     def count_books(self) -> int:
         """
