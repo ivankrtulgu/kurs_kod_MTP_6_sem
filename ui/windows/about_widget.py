@@ -13,12 +13,16 @@ class AboutWidget(QWidget, Ui_AboutDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        
+
         # Apply Eco-Style
         self.setStyleSheet(StyleManager.get_stylesheet())
         self.setWindowIcon(IconManager.get_default_icon())
-        
+
         # Update layout
         if hasattr(self, 'verticalLayout'):
             self.verticalLayout.setSpacing(10)
             self.verticalLayout.setContentsMargins(10, 10, 10, 10)
+
+    def accept(self):
+        """QWidget doesn't have accept() by default, so we implement it as close()."""
+        self.close()

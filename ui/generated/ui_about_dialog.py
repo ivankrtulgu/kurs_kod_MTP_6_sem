@@ -71,7 +71,7 @@ class Ui_AboutDialog(object):
 "- Генерация QR-кодов\n"
 "- Поиск по каталогу\n"
 "\n"
-"(c) 2024"))
+"(c) 2026"))
         self.btn_ok.setText(_translate("AboutDialog", "ОК"))
 
 
