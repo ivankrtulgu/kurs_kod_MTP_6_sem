@@ -5,5 +5,7 @@ __pycache__
 *.png
 *.csv
 *.txt
+!requirements.txt
+!security/requirements-security.txt
 *.db
 *.pdf
