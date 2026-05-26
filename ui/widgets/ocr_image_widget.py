@@ -6,6 +6,9 @@ from PyQt5.QtCore import Qt, QRect, QPoint, pyqtSignal, QBuffer, QByteArray
 import os
 import tempfile
 
+from core.services.ocr_service import OcrService
+from config.settings import settings
+
 
 class OcrRegion:
     """Класс одной области выделения."""
@@ -100,7 +103,10 @@ class OcrImageWidget(QWidget):
         self.brightness_value = 0
         self.contrast_value = 0
         self.zoom_factor = 1.0
-        
+
+        # OCR сервис (без Qt-зависимости — бизнес-логика вынесена в core/services/)
+        self._ocr_service = OcrService(settings.TESSERACT_PATH)
+
         self.temp_png_path = None
 
         self.setMinimumSize(400, 300)
@@ -485,7 +491,10 @@ class OcrImageWidget(QWidget):
     def recognize_text(self, pixmap: QPixmap, lang: str = 'auto') -> str:
         """
         Распознать текст на изображении через Tesseract.
-        
+
+        Тонкий адаптер: конвертирует QPixmap → PIL Image
+        и делегирует распознавание в OcrService (core/services/).
+
         Args:
             pixmap: Изображение для распознавания
             lang: Язык распознавания:
@@ -496,40 +505,14 @@ class OcrImageWidget(QWidget):
                   - 'digits' — только цифры и базовые символы
         """
         try:
-            import pytesseract
             from PIL import Image
             import io
-            import os
-            from config.settings import settings
 
-            # Try to get Tesseract path from settings (from .env)
-            tesseract_path = settings.TESSERACT_PATH.strip() if hasattr(settings, 'TESSERACT_PATH') else ""
+            # Нормализуем 'auto' → язык по умолчанию
+            if lang == 'auto':
+                lang = 'rus+eng'
 
-            # If not set in .env, auto-detect
-            if not tesseract_path:
-                import shutil
-                tesseract_path = shutil.which("tesseract")
-
-                if not tesseract_path:
-                    # Try common installation paths
-                    common_paths = [
-                        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-                        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-                        r"D:\Main_programms\Tesseract\Tesseract-OCR\tesseract.exe",
-                        r"/usr/bin/tesseract",
-                        r"/usr/local/bin/tesseract",
-                    ]
-
-                    for path in common_paths:
-                        if os.path.exists(path):
-                            tesseract_path = path
-                            break
-
-            if tesseract_path:
-                pytesseract.pytesseract.tesseract_cmd = tesseract_path
-            else:
-                return "(Ошибка: Tesseract не установлен. Установите Tesseract-OCR с https://github.com/UB-Mannheim/tesseract/wiki)"
-
+            # QPixmap → PIL Image (единственная Qt-зависимость)
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)
             buffer.open(QBuffer.WriteOnly)
@@ -538,20 +521,8 @@ class OcrImageWidget(QWidget):
 
             img = Image.open(io.BytesIO(byte_array.data()))
 
-            #  Определяем язык и конфиг в зависимости от режима
-            lang_map = {
-                'rus': ('rus', r'--oem 3 --psm 6'),
-                'eng': ('eng', r'--oem 3 --psm 6'),
-                'rus+eng': ('rus+eng', r'--oem 3 --psm 6'),
-                'eng+rus': ('eng+rus', r'--oem 3 --psm 6'),
-                'digits': ('eng', r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789.,-:;()/'),
-                'auto': ('rus+eng', r'--oem 3 --psm 6'),  # по умолчанию
-            }
-            
-            ocr_lang, config = lang_map.get(lang, ('rus+eng', r'--oem 3 --psm 6'))
-            text = pytesseract.image_to_string(img, lang=ocr_lang, config=config)
-
-            return text.strip()
+            # Делегируем в сервис без Qt
+            return self._ocr_service.recognize_from_pil(img, lang=lang)
 
         except Exception as e:
             print(f" OCR ошибка: {e}")
