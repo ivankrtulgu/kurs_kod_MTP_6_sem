@@ -193,6 +193,14 @@ class PostgresBookRepository(BookRepository):
         Returns:
             List of books matching ALL filters (AND logic).
         """
+        # Whitelist допустимых колонок для фильтрации
+        ALLOWED_COLUMNS = {
+            "author", "title", "subtitle", "responsibility", "edition",
+            "place", "publisher", "year", "pages", "isbn", "copyright",
+            "udc", "bbk", "author_mark", "reviewers", "annotation",
+            "abstract", "doi", "content_type", "access_method",
+        }
+
         if not filters:
             return self.get_all()
 
@@ -200,6 +208,9 @@ class PostgresBookRepository(BookRepository):
         params = []
 
         for field, filter_data in filters.items():
+            if field not in ALLOWED_COLUMNS:
+                logger.warning("Ignoring unknown filter field: %s", field)
+                continue
             if filter_data["type"] == "text":
                 # Text search with LIKE (case-insensitive)
                 where_clauses.append(f"LOWER({field}::text) LIKE LOWER(%s)")

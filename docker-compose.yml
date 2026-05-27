@@ -13,7 +13,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./infrastructure/database/postgres_schema.sql:/docker-entrypoint-initdb.d/init.sql
 
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -60,6 +60,9 @@ services:
 
     networks:
       - library_network
+
+    security_opt:
+      - no-new-privileges:true
 
     # По умолчанию запускаем тесты
     command: pytest -v

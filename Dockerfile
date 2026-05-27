@@ -8,7 +8,7 @@ LABEL description="Containerized library management system with PostgreSQL"
 # Установка системных зависимостей
 RUN apt-get update && apt-get install -y \
     # Для PyQt5
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     # Утилиты
     git \
+    # Для PDF (Unicode-шрифты)
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Создание рабочей директории
@@ -46,6 +48,12 @@ ENV DISPLAY=:99
 
 # Порт для возможного API (будущее расширение)
 EXPOSE 8000
+
+# Создание непривилегированного пользователя
+RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
+
+# Переключение на непривилегированного пользователя
+USER appuser
 
 # По умолчанию запускаем тесты
 CMD ["pytest", "-v"]
