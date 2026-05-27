@@ -27,8 +27,15 @@ class PrintingService:
             pdf = FPDF(unit="mm", format="A4")
             pdf.add_page()
             
-            font_path = r"C:\Windows\Fonts\arial.ttf"
-            if os.path.exists(font_path):
+            font_path = None
+            for candidate in [
+                r"C:\Windows\Fonts\arial.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            ]:
+                if os.path.exists(candidate):
+                    font_path = candidate
+                    break
+            if font_path:
                 pdf.add_font("DejaVu", "", font_path, uni=True)
                 pdf.set_font("DejaVu", size=10)
             else:
@@ -65,7 +72,7 @@ class PrintingService:
             pdf.rect(x, y, cell_width, cell_height)
             
             dynamic_font_size = max(6, min(12, int(cell_width * 0.2)))
-            pdf.set_font("DejaVu" if os.path.exists(font_path) else "Arial", size=dynamic_font_size)
+            pdf.set_font("DejaVu" if font_path else "Arial", size=dynamic_font_size)
             
             qr_x = x + (cell_width - qr_size) / 2
             qr_y = y + padding
@@ -112,8 +119,15 @@ class PrintingService:
             pdf = FPDF(unit="mm", format="A4")
             pdf.add_page()
             
-            font_path = r"C:\Windows\Fonts\arial.ttf"
-            has_font = os.path.exists(font_path)
+            font_path = None
+            for candidate in [
+                r"C:\Windows\Fonts\arial.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            ]:
+                if os.path.exists(candidate):
+                    font_path = candidate
+                    break
+            has_font = bool(font_path)
             if has_font:
                 pdf.add_font("DejaVu", "", font_path, uni=True)
                 pdf.set_font("DejaVu", size=10)
